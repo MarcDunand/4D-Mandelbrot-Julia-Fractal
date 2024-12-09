@@ -1,102 +1,110 @@
-import numpy as np
+import torch
 import cv2
 from tqdm import tqdm
-from concurrent.futures import ProcessPoolExecutor
+import numpy as np
 
-def mandelbrot_row(row_idx, xr, ximin, ximax, crmin, crmax, cimin, cimax, colorBits, width, height, max_iter):
+
+def mandelbrot_set_torch(xr, ximin, ximax, crmin, crmax, cimin, cimax, colorBits=24, width=1000, height=1000, max_iter=1000, device='cpu'):
     """
-    Compute a single row of the Mandelbrot set image.
+    Compute the Mandelbrot set using PyTorch for GPU acceleration.
     """
-    x_values = np.linspace(crmin, crmax, width)
-    y = np.linspace(cimin, cimax, height)[row_idx]
-    c = x_values + y * 1j  # Create complex c for the row
+    # Generate coordinate grids
+    x_values = torch.linspace(crmin, crmax, width, device=device)
+    y_values = torch.linspace(cimin, cimax, height, device=device)
+    c_values = torch.linspace(ximin, ximax, colorBits, device=device)
 
-    c_values = np.linspace(ximin, ximax, colorBits)
-    row_colors = np.zeros(width, dtype=np.uint32)
+    # Create complex plane
+    x_grid, y_grid = torch.meshgrid(x_values, y_values, indexing="ij")
+    c_plane = x_grid + 1j * y_grid  # Complex plane on the GPU
 
-    for j, cx in enumerate(c):
-        color_bits = 0
-        for k, xi in enumerate(c_values):
-            z = complex(xr, xi)
-            for iteration in range(max_iter):
-                z = z * z + cx
-                if abs(z) > 2:
-                    break
-            else:
-                color_bits |= (1 << k)
-        row_colors[j] = color_bits
+    # Initialize color bits and mask
+    mandelbrot_image = torch.zeros((width, height), dtype=torch.int32, device=device)
 
-    return row_idx, row_colors
+    # Iterate over the 24 discrete imaginary components of x0
+    for k, xi in enumerate(c_values):
+        z = torch.full_like(c_plane, xr, dtype=torch.complex64, device=device) + 1j * xi  # Starting value for z
+        mask = torch.ones_like(z, dtype=torch.bool, device=device)  # Mask to track points that have not diverged
 
-def mandelbrot_set_parallel(xr, ximin, ximax, crmin, crmax, cimin, cimax, colorBits, width, height, max_iter):
-    """
-    Parallel computation of the Mandelbrot set image.
-    """
-    rows = np.zeros((height, width), dtype=np.uint32)
+        for _ in range(max_iter):
+            z_next = z[mask]**2 + c_plane[mask]  # Compute the next z values for masked points
+            divergence = z_next.abs() > 2
+            temp_mask = mask.clone()  # Clone the current mask to avoid in-place memory issues
+            temp_mask[mask] = ~divergence  # Update the temporary mask for non-diverging points
+            mask = temp_mask  # Assign the updated mask back to the original
+            z[mask] = z_next[~divergence]  # Update z only for non-diverging points
 
-    with ProcessPoolExecutor() as executor:
-        futures = [
-            executor.submit(
-                mandelbrot_row, i, xr, ximin, ximax, crmin, crmax, cimin, cimax, colorBits, width, height, max_iter
-            )
-            for i in range(height)
-        ]
+        mandelbrot_image += mask.int() << k  # Update the color bits based on the final mask
 
-        for future in tqdm(futures, desc="Computing Mandelbrot rows", total=height):
-            row_idx, row_colors = future.result()
-            rows[row_idx] = row_colors
+    return mandelbrot_image.cpu().numpy()  # Move result back to the CPU for visualization
 
-    return rows
 
 if __name__ == "__main__":
-    # Define the region of the complex plane to visualize
-    crmin, crmax = -1.7, 0.7
-    cimin, cimax = -1.1, 1.1
-    xrmin, xrmax = -2, 2
-    ximin, ximax = -0.2, 0.2
+    try:
+        # Device setup
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            print("Using GPU:", torch.cuda.get_device_name(0))
+        else:
+            device = torch.device("cpu")
+            print("Using CPU")
 
-    # Resolution and iteration limit
-    time, colorBits, width, height = 120, 24, 640, 640
-    max_iter = 60
+        # Define the region of the complex plane to visualize
+        crmin, crmax = -1.7, 0.7
+        cimin, cimax = -1.1, 1.1
+        xrmin, xrmax = -2, 2
+        ximin, ximax = -0.2, 0.2
 
-    # Boolean to save the video
-    save_video = True
+        # Resolution and iteration limit
+        time, colorBits, width, height = 60, 24, 1280, 1280
+        max_iter = 120
 
-    # Set up video writer if save_video is True
-    if save_video:
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4
-        out = cv2.VideoWriter('./videoOutput/mandelbrot_animation.mp4', fourcc, 30, (width, height))
+        # Boolean to save the video
+        save_video = True
 
-    t_values = np.linspace(xrmin, xrmax, time)
+        # Set up video writer if save_video is True
+        if save_video:
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4
+            out = cv2.VideoWriter('./videoOutput/mandelbrot_animation.mp4', fourcc, 30, (width, height))
 
-    with tqdm(total=len(t_values), desc="Rendering animation") as pbar:
-        for xr in t_values:
-            # Compute the Mandelbrot set for the current starting value of z0
-            colored = mandelbrot_set_parallel(xr, ximin, ximax, crmin, crmax, cimin, cimax, colorBits, width, height, max_iter)
-            
-            # Convert hex codes to RGB format
-            rgb_image = np.zeros((height, width, 3), dtype=np.uint8)
-            rgb_image[..., 2] = (colored >> 16) & 0xFF  # Red channel
-            rgb_image[..., 1] = (colored >> 8) & 0xFF   # Green channel
-            rgb_image[..., 0] = colored & 0xFF          # Blue channel
+        t_values = torch.linspace(xrmin, xrmax, time, device=device)
 
-            # Display the frame
-            cv2.imshow("Mandelbrot Set Animation", rgb_image)
+        with tqdm(total=len(t_values), desc="Rendering animation") as pbar:
+            for xr in t_values:
+                try:
+                    # Compute the Mandelbrot set for the current starting value of z0
+                    colored = mandelbrot_set_torch(xr, ximin, ximax, crmin, crmax, cimin, cimax, colorBits, width, height, max_iter, device)
 
-            # Save the frame to the video if save_video is True
-            if save_video:
-                out.write(rgb_image)
+                    # Convert hex codes to RGB format
+                    rgb_image = np.zeros((height, width, 3), dtype=np.uint8)  # Create NumPy array
+                    rgb_image[..., 2] = (colored >> 16) & 0xFF  # Red channel
+                    rgb_image[..., 1] = (colored >> 8) & 0xFF   # Green channel
+                    rgb_image[..., 0] = colored & 0xFF          # Blue channel
 
-            # Add a small delay to allow the frame to update
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                    # Display the frame
+                    cv2.imshow("Mandelbrot Set Animation", rgb_image)
 
-            pbar.update(1)
+                    # Save the frame to the video if save_video is True
+                    if save_video:
+                        out.write(rgb_image)
 
-    # Release the video writer if save_video is True
-    if save_video:
-        out.release()
+                    # Free GPU memory
+                    torch.cuda.empty_cache()
 
-    # Close the OpenCV window
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+                except Exception as e:
+                    print(f"Error during frame computation: {e}")
+
+                # Add a small delay to allow the frame to update
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
+                pbar.update(1)
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        # Release the video writer if save_video is True
+        if save_video:
+            out.release()
+
+        # Close the OpenCV window
+        cv2.destroyAllWindows()
