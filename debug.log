@@ -16226,3 +16226,903 @@ INFO:root:GPU memory reserved: 0.11%
 INFO:root:GPU memory allocated: 0.00 MB
 INFO:root:Starting frame 59 with xr = 2.0
 INFO:root:Frame 59 completed in 0.05 seconds.
+INFO:root:CPU memory usage: 27.8%
+INFO:root:GPU memory reserved: 0.01%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 0 with xr = -2.0
+INFO:root:Frame 0 completed in 0.30 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 1 with xr = -1.9322034120559692
+INFO:root:Frame 1 completed in 0.04 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 2 with xr = -1.8644068241119385
+INFO:root:Frame 2 completed in 0.34 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 3 with xr = -1.7966101169586182
+INFO:root:Frame 3 completed in 0.40 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 4 with xr = -1.7288135290145874
+INFO:root:Frame 4 completed in 0.51 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 5 with xr = -1.6610169410705566
+INFO:root:Frame 5 completed in 0.53 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 6 with xr = -1.5932203531265259
+INFO:root:Frame 6 completed in 0.56 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 7 with xr = -1.5254237651824951
+INFO:root:Frame 7 completed in 0.57 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 8 with xr = -1.4576270580291748
+INFO:root:Frame 8 completed in 0.56 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 9 with xr = -1.389830470085144
+INFO:root:Frame 9 completed in 0.55 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 10 with xr = -1.3220338821411133
+INFO:root:Frame 10 completed in 0.56 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 11 with xr = -1.2542372941970825
+INFO:root:Frame 11 completed in 0.56 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 12 with xr = -1.1864407062530518
+INFO:root:Frame 12 completed in 0.56 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 13 with xr = -1.118644118309021
+INFO:root:Frame 13 completed in 0.59 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 14 with xr = -1.0508474111557007
+INFO:root:Frame 14 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 15 with xr = -0.9830508232116699
+INFO:root:Frame 15 completed in 0.64 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 16 with xr = -0.9152542352676392
+INFO:root:Frame 16 completed in 0.64 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 17 with xr = -0.8474576473236084
+INFO:root:Frame 17 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 18 with xr = -0.7796609997749329
+INFO:root:Frame 18 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 19 with xr = -0.7118644118309021
+INFO:root:Frame 19 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 20 with xr = -0.6440677642822266
+INFO:root:Frame 20 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 21 with xr = -0.5762711763381958
+INFO:root:Frame 21 completed in 0.60 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 22 with xr = -0.508474588394165
+INFO:root:Frame 22 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 23 with xr = -0.4406779706478119
+INFO:root:Frame 23 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 24 with xr = -0.37288135290145874
+INFO:root:Frame 24 completed in 0.64 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 25 with xr = -0.3050847351551056
+INFO:root:Frame 25 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 26 with xr = -0.23728813230991364
+INFO:root:Frame 26 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 27 with xr = -0.16949152946472168
+INFO:root:Frame 27 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 28 with xr = -0.10169491171836853
+INFO:root:Frame 28 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 29 with xr = -0.03389830142259598
+INFO:root:Frame 29 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 30 with xr = 0.03389830142259598
+INFO:root:Frame 30 completed in 0.63 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 31 with xr = 0.10169491171836853
+INFO:root:Frame 31 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 32 with xr = 0.16949152946472168
+INFO:root:Frame 32 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 33 with xr = 0.23728813230991364
+INFO:root:Frame 33 completed in 0.60 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 34 with xr = 0.3050847351551056
+INFO:root:Frame 34 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 35 with xr = 0.37288135290145874
+INFO:root:Frame 35 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 36 with xr = 0.4406779706478119
+INFO:root:Frame 36 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 37 with xr = 0.508474588394165
+INFO:root:Frame 37 completed in 0.56 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 38 with xr = 0.5762711763381958
+INFO:root:Frame 38 completed in 0.55 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 39 with xr = 0.6440677642822266
+INFO:root:Frame 39 completed in 0.55 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 40 with xr = 0.7118644118309021
+INFO:root:Frame 40 completed in 0.54 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 41 with xr = 0.7796609997749329
+INFO:root:Frame 41 completed in 0.57 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 42 with xr = 0.8474576473236084
+INFO:root:Frame 42 completed in 0.60 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 43 with xr = 0.9152542352676392
+INFO:root:Frame 43 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 44 with xr = 0.9830508232116699
+INFO:root:Frame 44 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 45 with xr = 1.0508474111557007
+INFO:root:Frame 45 completed in 0.64 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 46 with xr = 1.118644118309021
+INFO:root:Frame 46 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 47 with xr = 1.1864407062530518
+INFO:root:Frame 47 completed in 0.60 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 48 with xr = 1.2542372941970825
+INFO:root:Frame 48 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 49 with xr = 1.3220338821411133
+INFO:root:Frame 49 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 50 with xr = 1.389830470085144
+INFO:root:Frame 50 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 51 with xr = 1.4576270580291748
+INFO:root:Frame 51 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 52 with xr = 1.5254237651824951
+INFO:root:Frame 52 completed in 0.65 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 53 with xr = 1.5932203531265259
+INFO:root:Frame 53 completed in 0.60 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 54 with xr = 1.6610169410705566
+INFO:root:Frame 54 completed in 0.59 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 55 with xr = 1.7288135290145874
+INFO:root:Frame 55 completed in 0.54 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 56 with xr = 1.7966101169586182
+INFO:root:Frame 56 completed in 0.40 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 57 with xr = 1.8644068241119385
+INFO:root:Frame 57 completed in 0.32 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 58 with xr = 1.9322034120559692
+INFO:root:Frame 58 completed in 0.05 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 59 with xr = 2.0
+INFO:root:Frame 59 completed in 0.05 seconds.
+INFO:root:CPU memory usage: 27.2%
+INFO:root:GPU memory reserved: 0.01%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 0 with xr = -2.0
+INFO:root:Frame 0 completed in 0.28 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 1 with xr = -1.9322034120559692
+INFO:root:Frame 1 completed in 0.05 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 2 with xr = -1.8644068241119385
+INFO:root:Frame 2 completed in 0.37 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 3 with xr = -1.7966101169586182
+INFO:root:Frame 3 completed in 0.48 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 4 with xr = -1.7288135290145874
+INFO:root:Frame 4 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 5 with xr = -1.6610169410705566
+INFO:root:Frame 5 completed in 0.71 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 6 with xr = -1.5932203531265259
+INFO:root:Frame 6 completed in 0.69 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 7 with xr = -1.5254237651824951
+INFO:root:Frame 7 completed in 0.69 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 8 with xr = -1.4576270580291748
+INFO:root:Frame 8 completed in 0.68 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 9 with xr = -1.389830470085144
+INFO:root:Frame 9 completed in 0.70 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 10 with xr = -1.3220338821411133
+INFO:root:Frame 10 completed in 0.68 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 11 with xr = -1.2542372941970825
+INFO:root:Frame 11 completed in 0.73 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 12 with xr = -1.1864407062530518
+INFO:root:Frame 12 completed in 0.75 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 13 with xr = -1.118644118309021
+INFO:root:Frame 13 completed in 0.74 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 14 with xr = -1.0508474111557007
+INFO:root:Frame 14 completed in 0.73 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 15 with xr = -0.9830508232116699
+INFO:root:Frame 15 completed in 0.79 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 16 with xr = -0.9152542352676392
+INFO:root:Frame 16 completed in 0.77 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 17 with xr = -0.8474576473236084
+INFO:root:Frame 17 completed in 0.71 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 18 with xr = -0.7796609997749329
+INFO:root:Frame 18 completed in 0.68 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 19 with xr = -0.7118644118309021
+INFO:root:Frame 19 completed in 0.71 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 20 with xr = -0.6440677642822266
+INFO:root:Frame 20 completed in 0.77 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 21 with xr = -0.5762711763381958
+INFO:root:Frame 21 completed in 0.73 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 22 with xr = -0.508474588394165
+INFO:root:Frame 22 completed in 0.70 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 23 with xr = -0.4406779706478119
+INFO:root:Frame 23 completed in 0.74 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 24 with xr = -0.37288135290145874
+INFO:root:Frame 24 completed in 0.73 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 25 with xr = -0.3050847351551056
+INFO:root:Frame 25 completed in 0.77 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 26 with xr = -0.23728813230991364
+INFO:root:Frame 26 completed in 0.77 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 27 with xr = -0.16949152946472168
+INFO:root:Frame 27 completed in 0.78 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 28 with xr = -0.10169491171836853
+INFO:root:Frame 28 completed in 0.76 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 29 with xr = -0.03389830142259598
+INFO:root:Frame 29 completed in 0.79 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 30 with xr = 0.03389830142259598
+INFO:root:Frame 30 completed in 0.77 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 31 with xr = 0.10169491171836853
+INFO:root:Frame 31 completed in 0.77 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 32 with xr = 0.16949152946472168
+INFO:root:Frame 32 completed in 0.76 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 33 with xr = 0.23728813230991364
+INFO:root:Frame 33 completed in 0.77 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 34 with xr = 0.3050847351551056
+INFO:root:Frame 34 completed in 0.76 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 35 with xr = 0.37288135290145874
+INFO:root:Frame 35 completed in 0.77 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 36 with xr = 0.4406779706478119
+INFO:root:Frame 36 completed in 0.77 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 37 with xr = 0.508474588394165
+INFO:root:Frame 37 completed in 0.77 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 38 with xr = 0.5762711763381958
+INFO:root:Frame 38 completed in 0.82 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 39 with xr = 0.6440677642822266
+INFO:root:Frame 39 completed in 0.74 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 40 with xr = 0.7118644118309021
+INFO:root:Frame 40 completed in 0.70 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 41 with xr = 0.7796609997749329
+INFO:root:Frame 41 completed in 0.77 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 42 with xr = 0.8474576473236084
+INFO:root:Frame 42 completed in 0.73 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 43 with xr = 0.9152542352676392
+INFO:root:Frame 43 completed in 0.73 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 44 with xr = 0.9830508232116699
+INFO:root:Frame 44 completed in 0.69 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 45 with xr = 1.0508474111557007
+INFO:root:Frame 45 completed in 0.71 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 46 with xr = 1.118644118309021
+INFO:root:Frame 46 completed in 0.73 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 47 with xr = 1.1864407062530518
+INFO:root:Frame 47 completed in 0.73 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 48 with xr = 1.2542372941970825
+INFO:root:Frame 48 completed in 0.74 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 49 with xr = 1.3220338821411133
+INFO:root:Frame 49 completed in 0.67 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 50 with xr = 1.389830470085144
+INFO:root:Frame 50 completed in 0.68 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 51 with xr = 1.4576270580291748
+INFO:root:Frame 51 completed in 0.68 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 52 with xr = 1.5254237651824951
+INFO:root:Frame 52 completed in 0.72 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 53 with xr = 1.5932203531265259
+INFO:root:Frame 53 completed in 0.75 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 54 with xr = 1.6610169410705566
+INFO:root:Frame 54 completed in 0.73 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 55 with xr = 1.7288135290145874
+INFO:root:Frame 55 completed in 0.71 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 56 with xr = 1.7966101169586182
+INFO:root:Frame 56 completed in 0.47 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 57 with xr = 1.8644068241119385
+INFO:root:Frame 57 completed in 0.37 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 58 with xr = 1.9322034120559692
+INFO:root:Frame 58 completed in 0.05 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 59 with xr = 2.0
+INFO:root:Frame 59 completed in 0.08 seconds.
+INFO:root:CPU memory usage: 27.2%
+INFO:root:GPU memory reserved: 0.01%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 0 with xr = -2.0
+INFO:root:Frame 0 completed in 0.30 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 1 with xr = -1.9322034120559692
+INFO:root:Frame 1 completed in 0.04 seconds.
+INFO:root:CPU memory usage: 27.4%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 2 with xr = -1.8644068241119385
+INFO:root:Frame 2 completed in 0.33 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 3 with xr = -1.7966101169586182
+INFO:root:Frame 3 completed in 0.39 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 4 with xr = -1.7288135290145874
+INFO:root:Frame 4 completed in 0.51 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 5 with xr = -1.6610169410705566
+INFO:root:Frame 5 completed in 0.52 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 6 with xr = -1.5932203531265259
+INFO:root:Frame 6 completed in 0.56 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 7 with xr = -1.5254237651824951
+INFO:root:Frame 7 completed in 0.56 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 8 with xr = -1.4576270580291748
+INFO:root:Frame 8 completed in 0.56 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 9 with xr = -1.389830470085144
+INFO:root:Frame 9 completed in 0.56 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 10 with xr = -1.3220338821411133
+INFO:root:Frame 10 completed in 0.56 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 11 with xr = -1.2542372941970825
+INFO:root:Frame 11 completed in 0.57 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 12 with xr = -1.1864407062530518
+INFO:root:Frame 12 completed in 0.56 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 13 with xr = -1.118644118309021
+INFO:root:Frame 13 completed in 0.57 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 14 with xr = -1.0508474111557007
+INFO:root:Frame 14 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 15 with xr = -0.9830508232116699
+INFO:root:Frame 15 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 16 with xr = -0.9152542352676392
+INFO:root:Frame 16 completed in 0.63 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 17 with xr = -0.8474576473236084
+INFO:root:Frame 17 completed in 0.64 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 18 with xr = -0.7796609997749329
+INFO:root:Frame 18 completed in 0.60 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 19 with xr = -0.7118644118309021
+INFO:root:Frame 19 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 20 with xr = -0.6440677642822266
+INFO:root:Frame 20 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 21 with xr = -0.5762711763381958
+INFO:root:Frame 21 completed in 0.60 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 22 with xr = -0.508474588394165
+INFO:root:Frame 22 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 23 with xr = -0.4406779706478119
+INFO:root:Frame 23 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 24 with xr = -0.37288135290145874
+INFO:root:Frame 24 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 25 with xr = -0.3050847351551056
+INFO:root:Frame 25 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 26 with xr = -0.23728813230991364
+INFO:root:Frame 26 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 27 with xr = -0.16949152946472168
+INFO:root:Frame 27 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 28 with xr = -0.10169491171836853
+INFO:root:Frame 28 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 29 with xr = -0.03389830142259598
+INFO:root:Frame 29 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 30 with xr = 0.03389830142259598
+INFO:root:Frame 30 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 31 with xr = 0.10169491171836853
+INFO:root:Frame 31 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 32 with xr = 0.16949152946472168
+INFO:root:Frame 32 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 33 with xr = 0.23728813230991364
+INFO:root:Frame 33 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 34 with xr = 0.3050847351551056
+INFO:root:Frame 34 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 35 with xr = 0.37288135290145874
+INFO:root:Frame 35 completed in 0.60 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 36 with xr = 0.4406779706478119
+INFO:root:Frame 36 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 37 with xr = 0.508474588394165
+INFO:root:Frame 37 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 38 with xr = 0.5762711763381958
+INFO:root:Frame 38 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 39 with xr = 0.6440677642822266
+INFO:root:Frame 39 completed in 0.61 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 40 with xr = 0.7118644118309021
+INFO:root:Frame 40 completed in 0.63 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 41 with xr = 0.7796609997749329
+INFO:root:Frame 41 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 42 with xr = 0.8474576473236084
+INFO:root:Frame 42 completed in 0.63 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 43 with xr = 0.9152542352676392
+INFO:root:Frame 43 completed in 0.63 seconds.
+INFO:root:CPU memory usage: 27.5%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 44 with xr = 0.9830508232116699
+INFO:root:Frame 44 completed in 0.65 seconds.
+INFO:root:CPU memory usage: 27.6%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 45 with xr = 1.0508474111557007
+INFO:root:Frame 45 completed in 0.58 seconds.
+INFO:root:CPU memory usage: 27.6%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 46 with xr = 1.118644118309021
+INFO:root:Frame 46 completed in 0.58 seconds.
+INFO:root:CPU memory usage: 27.6%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 47 with xr = 1.1864407062530518
+INFO:root:Frame 47 completed in 0.63 seconds.
+INFO:root:CPU memory usage: 27.6%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 48 with xr = 1.2542372941970825
+INFO:root:Frame 48 completed in 0.65 seconds.
+INFO:root:CPU memory usage: 27.6%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 49 with xr = 1.3220338821411133
+INFO:root:Frame 49 completed in 0.75 seconds.
+INFO:root:CPU memory usage: 27.6%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 50 with xr = 1.389830470085144
+INFO:root:Frame 50 completed in 0.69 seconds.
+INFO:root:CPU memory usage: 27.8%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 51 with xr = 1.4576270580291748
+INFO:root:Frame 51 completed in 0.74 seconds.
+INFO:root:CPU memory usage: 27.9%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 52 with xr = 1.5254237651824951
+INFO:root:Frame 52 completed in 0.85 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 53 with xr = 1.5932203531265259
+INFO:root:Frame 53 completed in 0.69 seconds.
+INFO:root:CPU memory usage: 28.0%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 54 with xr = 1.6610169410705566
+INFO:root:Frame 54 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 27.9%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 55 with xr = 1.7288135290145874
+INFO:root:Frame 55 completed in 0.59 seconds.
+INFO:root:CPU memory usage: 27.9%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 56 with xr = 1.7966101169586182
+INFO:root:Frame 56 completed in 0.42 seconds.
+INFO:root:CPU memory usage: 27.9%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 57 with xr = 1.8644068241119385
+INFO:root:Frame 57 completed in 0.32 seconds.
+INFO:root:CPU memory usage: 27.9%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 58 with xr = 1.9322034120559692
+INFO:root:Frame 58 completed in 0.05 seconds.
+INFO:root:CPU memory usage: 27.9%
+INFO:root:GPU memory reserved: 0.11%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 59 with xr = 2.0
+INFO:root:Frame 59 completed in 0.05 seconds.
