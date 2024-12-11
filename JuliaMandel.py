@@ -33,30 +33,40 @@ def check_memory():
         if reserved > 0.9:  # If GPU memory usage exceeds 90%, clear cache
             torch.cuda.empty_cache()
 
-def mandelbrot_set_torch(xr, ximin, ximax, crmin, crmax, cimin, cimax, colorBits=24, width=1000, height=1000, max_iter=1000, device='cpu'):
+def fractalFrame(xySlice, ymin, ymax, xmin, xmax, t, hmin, hmax, height=1000, width=1000, colorBits=24, max_iter=1000, device='cpu'):
     """
     Compute the Mandelbrot set using PyTorch for GPU acceleration.
     Each pixel encodes whether different imaginary components of z0 converge.
     """
     # Create grids of x and y values representing the complex plane
-    x_values = torch.linspace(crmin, crmax, width, device=device)
-    y_values = torch.linspace(cimin, cimax, height, device=device)
-    c_values = torch.linspace(ximin, ximax, colorBits, device=device)
+    x_values = torch.linspace(ymin, ymax, width, device=device)
+    y_values = torch.linspace(xmin, xmax, height, device=device)
+    z0_img_values = torch.linspace(hmin, hmax, colorBits, device=device)
     x_grid, y_grid = torch.meshgrid(x_values, y_values, indexing="ij")
-    c_plane = x_grid + 1j * y_grid  # Represent the complex plane
+    
+    xy_plane = x_grid + 1j * y_grid  # Represent the complex plane
 
     # Initialize an image to store convergence data (24-bit color encoding)
     mandelbrot_image = torch.zeros((width, height), dtype=torch.int32, device=device)
 
     # Iterate over the 24 discrete imaginary components of z0
-    for k, xi in enumerate(c_values):
-        # Initialize z0 with real component xr and current imaginary component xi
-        z = torch.full_like(c_plane, xr, dtype=torch.complex64) + 1j * xi
+    for k, xi in enumerate(z0_img_values):
+        # Initialize z0 with real component t and current imaginary component xi
+        
+        if xySlice == "M":
+            z = torch.full_like(xy_plane, t, dtype=torch.complex64) + 1j * xi
+            c = xy_plane.clone()
+        elif xySlice == "J":
+            z = xy_plane.clone()
+            c = torch.full_like(xy_plane, t, dtype=torch.complex64) + 1j * xi
+
         mask = torch.ones_like(z, dtype=torch.bool)  # Track points that haven't diverged
 
         for _ in range(max_iter):
             # Calculate z^2 + c for points that haven't diverged
-            z_next = z[mask]**2 + c_plane[mask]
+
+            z_next = z[mask]**2 + c[mask]
+
             divergence = z_next.abs() > 2  # Identify diverging points
             temp_mask = mask.clone()
             temp_mask[mask] = ~divergence  # Update mask to exclude diverging points
@@ -77,23 +87,23 @@ if __name__ == "__main__":
     print("Using device:", device)
 
     # Define the region of the complex plane to visualize
-    crmin, crmax = -1.7, 0.7
-    cimin, cimax = -1.1, 1.1
-    xrmin, xrmax = -2, 2  # Range for the real component of z0
-    ximin, ximax = -0.2, 0.2  # Range for the imaginary component of z0
+    ymin, ymax = -1.05, 1.05
+    xmin, xmax = -1.2, 1.2
+    tmin, tmax = 0.27, 0.45  # Range for the real component of z0
+    hmin, hmax = -0.45, 0.45  # Range for the imaginary component of z0
 
     # Set parameters for rendering
-    time_steps, colorBits, width, height = 60, 24, 300, 300  # Resolution and animation frames
+    height, width, time_steps, colorBits = 300, 390, 10, 24  # Resolution and animation frames, COLORBITS need not be 24
     max_iter = 30  # Maximum iterations for convergence
     save_video = True  # Whether to save the animation as a video
 
     # Initialize the video writer if saving the video
     if save_video:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # MP4 codec
-        out = cv2.VideoWriter('./videoOutput/mandelbrot_animation.mp4', fourcc, 30, (width, height))
+        out = cv2.VideoWriter('./videoOutput/mandelbrot_animation.mp4', fourcc, 10, (width, height))
 
     # Generate a range of real values for the animation
-    t_values = torch.linspace(xrmin, xrmax, time_steps, device=device)
+    t_values = torch.linspace(tmin, tmax, time_steps, device=device)
 
     # Function to reset the watchdog timer (prevents stalls)
     def reset_watchdog():
@@ -108,14 +118,14 @@ if __name__ == "__main__":
 
     # Render the animation
     with tqdm(total=len(t_values), desc="Rendering animation") as pbar:
-        for idx, xr in enumerate(t_values):
+        for idx, t in enumerate(t_values):
             try:
                 start_time = time.time()
                 check_memory()  # Check memory usage
-                logging.info(f"Starting frame {idx} with xr = {xr}")
+                logging.info(f"Starting frame {idx} with t = {t}")
 
                 # Compute the Mandelbrot set for the current frame
-                colored = mandelbrot_set_torch(xr, ximin, ximax, crmin, crmax, cimin, cimax, colorBits, width, height, max_iter, device)
+                colored = fractalFrame("J", ymin, ymax, xmin, xmax, t, hmin, hmax, width, height, 24, max_iter, device)
 
                 # Convert the Mandelbrot image to RGB format
                 rgb_image = np.zeros((height, width, 3), dtype=np.uint8)
