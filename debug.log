@@ -28116,3 +28116,53 @@ INFO:root:GPU memory reserved: 0.12%
 INFO:root:GPU memory allocated: 0.00 MB
 INFO:root:Starting frame 9 with t = 0.44999998807907104
 INFO:root:Frame 9 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 26.8%
+INFO:root:GPU memory reserved: 0.01%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 0 with t = 0.27000001072883606
+INFO:root:Frame 0 completed in 1.02 seconds.
+INFO:root:CPU memory usage: 27.0%
+INFO:root:GPU memory reserved: 0.12%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 1 with t = 0.2900000214576721
+INFO:root:Frame 1 completed in 0.66 seconds.
+INFO:root:CPU memory usage: 27.0%
+INFO:root:GPU memory reserved: 0.12%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 2 with t = 0.3100000023841858
+INFO:root:Frame 2 completed in 0.66 seconds.
+INFO:root:CPU memory usage: 27.0%
+INFO:root:GPU memory reserved: 0.12%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 3 with t = 0.33000001311302185
+INFO:root:Frame 3 completed in 0.65 seconds.
+INFO:root:CPU memory usage: 27.0%
+INFO:root:GPU memory reserved: 0.12%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 4 with t = 0.3499999940395355
+INFO:root:Frame 4 completed in 0.63 seconds.
+INFO:root:CPU memory usage: 27.0%
+INFO:root:GPU memory reserved: 0.12%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 5 with t = 0.3700000047683716
+INFO:root:Frame 5 completed in 0.64 seconds.
+INFO:root:CPU memory usage: 27.0%
+INFO:root:GPU memory reserved: 0.12%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 6 with t = 0.38999998569488525
+INFO:root:Frame 6 completed in 0.62 seconds.
+INFO:root:CPU memory usage: 27.0%
+INFO:root:GPU memory reserved: 0.12%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 7 with t = 0.4099999964237213
+INFO:root:Frame 7 completed in 0.63 seconds.
+INFO:root:CPU memory usage: 27.0%
+INFO:root:GPU memory reserved: 0.12%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 8 with t = 0.429999977350235
+INFO:root:Frame 8 completed in 0.63 seconds.
+INFO:root:CPU memory usage: 27.0%
+INFO:root:GPU memory reserved: 0.12%
+INFO:root:GPU memory allocated: 0.00 MB
+INFO:root:Starting frame 9 with t = 0.44999998807907104
+INFO:root:Frame 9 completed in 0.63 seconds.
