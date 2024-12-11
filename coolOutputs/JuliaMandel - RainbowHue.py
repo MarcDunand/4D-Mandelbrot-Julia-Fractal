@@ -7,35 +7,8 @@ import gc
 import logging
 from threading import Timer
 import time
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import os
 
 logging.basicConfig(filename='debug.log', level=logging.DEBUG)
-
-
-def apply_plasma_colormap(rgb_image):
-    """
-    Apply the plasma colormap from Matplotlib to an RGB image.
-    Args:
-        rgb_image (numpy.ndarray): Input RGB image (H, W, 3).
-    Returns:
-        numpy.ndarray: Image with plasma colormap applied (H, W, 3).
-    """
-    # Convert the RGB image to grayscale intensity
-    intensity = np.mean(rgb_image, axis=2)  # Average of R, G, B
-
-    # Normalize intensity to [0, 1] range
-    normalized_intensity = intensity / 255.0
-
-    # Apply the plasma colormap
-    plasma_colormap = cm.plasma(normalized_intensity)
-
-    # Convert to 8-bit RGB (discard the alpha channel)
-    plasma_image = (plasma_colormap[:, :, :3] * 255).astype(np.uint8)
-
-    return plasma_image
-
 
 def check_memory():
     memory = psutil.virtual_memory()
@@ -84,9 +57,9 @@ if __name__ == "__main__":
     xrmin, xrmax = -2, 2
     ximin, ximax = -0.2, 0.2
 
-    time_steps, colorBits, width, height = 60, 24, 300, 300
+    time_steps, colorBits, width, height = 30, 24, 300, 300
     max_iter = 30
-    save_video = True
+    save_video = False
 
     if save_video:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -133,9 +106,6 @@ if __name__ == "__main__":
 
             pbar.update(1)
 
-
     if save_video:
         out.release()
-    
     cv2.destroyAllWindows()
-    os._exit(0)
