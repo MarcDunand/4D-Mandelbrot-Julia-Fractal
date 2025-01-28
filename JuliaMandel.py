@@ -84,17 +84,17 @@ def fractalFrame(xySlice, ymin, ymax, xmin, xmax, t, hmin, hmax, height=1000, wi
 
 
     if xySlice == "T":
-        for k, y in enumerate(y_values):
+        for k, y in enumerate(y_values):  #k iterates across rows (y values)
             if xySlice == "T":
-                x_grid, h_grid = torch.meshgrid(h_values, x_values, indexing="ij")
-                xh_plane = x_grid + 1j * h_grid
+                h_grid, x_grid = torch.meshgrid(h_values, x_values, indexing="ij")
+                xh_plane = x_grid + 1j * h_grid  #creates a grid representative of a 2d slice of our object
 
                 z = xh_plane.clone()
                 c = torch.full_like(xh_plane, 1j * t, dtype=torch.complex64) + y
 
-            mask = torch.ones_like(z, dtype=torch.bool)  # Track points that haven't diverged
+            mask = torch.ones_like(z, dtype=torch.bool)  # Track points that haven't diverged (creates a grid of 1s with the same width and height as our slice)
 
-            for _ in range(max_iter):
+            for _ in range(max_iter):  #determines which points have diverged
                 # Calculate z^2 + c for points that haven't diverged
 
                 z_next = z[mask]**2 + c[mask]
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     # Define the region of the complex plane to visualize
     ymin, ymax = -2, 2
     xmin, xmax = -2, 2
-    tmin, tmax = -2, 2  # Range for the real component of z0
+    tmin, tmax = -1, 1  # Range for the real component of z0
     hmin, hmax = -2, 2  # Range for the imaginary component of z0
 
     # Set parameters for rendering
