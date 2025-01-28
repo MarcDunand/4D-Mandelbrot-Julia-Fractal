@@ -48,7 +48,7 @@ def fractalFrame(xySlice, ymin, ymax, xmin, xmax, t, hmin, hmax, height=1000, wi
 
     if xySlice == "M" or xySlice == "J":
         # Iterate over the 24 discrete color bits
-        for k, h in enumerate(h_values):        
+        for k, h in enumerate(h_values):         
             if xySlice == "M":
                 x_grid, y_grid = torch.meshgrid(x_values, y_values, indexing="ij")
                 xy_plane = x_grid + 1j * y_grid
