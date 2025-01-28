@@ -35,85 +35,47 @@ def check_memory():
 
 def fractalFrame(xySlice, ymin, ymax, xmin, xmax, t, hmin, hmax, height=1000, width=1000, colorBits=24, max_iter=1000, device='cpu'):
     """
-    Compute the Mandelbrot set using PyTorch for GPU acceleration.
-    Each pixel encodes whether different imaginary components of z0 converge.
+    Compute the Mandelbrot set using a 3D grid for full parallelization.
     """
-    # Create grids of x and y values representing the complex plane
+    # Create grids of x, y, and h values representing the complex plane and imaginary components
     x_values = torch.linspace(ymin, ymax, width, device=device)
     y_values = torch.linspace(xmin, xmax, height, device=device)
     h_values = torch.linspace(hmin, hmax, colorBits, device=device)
 
-    # Initialize an image to store convergence data (24-bit color encoding)
-    mandelbrot_image = torch.zeros((width, height), dtype=torch.int32, device=device)
+    x_grid, y_grid, h_grid = torch.meshgrid(x_values, y_values, h_values, indexing="ij")
+    
+    # Initialize complex plane and z values based on the selected slice
+    if xySlice == "M":
+        xy_plane = x_grid + 1j * y_grid
+        z = torch.full_like(xy_plane, t, dtype=torch.complex64) + 1j * h_grid
+        c = xy_plane
+    elif xySlice == "J":
+        xy_plane = x_grid + 1j * y_grid
+        z = xy_plane
+        c = torch.full_like(xy_plane, t, dtype=torch.complex64) + 1j * h_grid
+    elif xySlice == "T":
+        xy_plane = x_grid + 1j * h_grid
+        z = xy_plane
+        c = torch.full_like(xy_plane, 1j * t, dtype=torch.complex64) + y_grid
 
-    if xySlice == "M" or xySlice == "J":
-        # Iterate over the 24 discrete color bits
-        for k, h in enumerate(h_values):         
-            if xySlice == "M":
-                x_grid, y_grid = torch.meshgrid(x_values, y_values, indexing="ij")
-                xy_plane = x_grid + 1j * y_grid
+    # Initialize mask for all grid points
+    mask = torch.ones_like(z, dtype=torch.bool, device=device)  # Shape: [width, height, colorBits]
 
-                z = torch.full_like(xy_plane, t, dtype=torch.complex64) + 1j * h
-                c = xy_plane.clone()
-            elif xySlice == "J":
-                x_grid, y_grid = torch.meshgrid(x_values, y_values, indexing="ij")
-                xy_plane = x_grid + 1j * y_grid
+    for _ in range(max_iter):
+        # Perform computations for all points in parallel
+        z_next = z**2 + c
+        divergence = z_next.abs() > 2  # Identify diverging points
+        mask = mask & ~divergence  # Update mask to exclude diverging points
+        z = torch.where(mask, z_next, z)  # Update z only for non-diverging points
 
-                z = xy_plane.clone()
-                c = torch.full_like(xy_plane, t, dtype=torch.complex64) + 1j * h
-                
+        if not mask.any():  # Stop if all points diverge
+            break
 
-            mask = torch.ones_like(z, dtype=torch.bool)  # Track points that haven't diverged
+    # Encode the result into a 2D image by collapsing the third axis (colorBits)
+    weights = 2 ** torch.arange(colorBits, device=device, dtype=torch.int32)  # Shape: [colorBits]
+    mandelbrot_image = torch.sum(mask.int() * weights, dim=-1)  # Collapse the third dimension
 
-            for _ in range(max_iter):
-                # Calculate z^2 + c for points that haven't diverged
-
-                z_next = z[mask]**2 + c[mask]
-
-                divergence = z_next.abs() > 2  # Identify diverging points
-                temp_mask = mask.clone()
-                temp_mask[mask] = ~divergence  # Update mask to exclude diverging points
-                mask = temp_mask
-                z[mask] = z_next[~divergence]  # Update z for non-diverging points
-
-                if not mask.any():  # Stop if all points diverge
-                    break
-
-            # Encode the result for this imaginary component into the 24-bit color value
-            mandelbrot_image += mask.int() << k                
-
-
-    if xySlice == "T":
-        for k, y in enumerate(y_values):  #k iterates across rows (y values)
-            if xySlice == "T":
-                h_grid, x_grid = torch.meshgrid(h_values, x_values, indexing="ij")
-                xh_plane = x_grid + 1j * h_grid  #creates a grid representative of a 2d slice of our object
-
-                z = xh_plane.clone()
-                c = torch.full_like(xh_plane, 1j * t, dtype=torch.complex64) + y
-
-            mask = torch.ones_like(z, dtype=torch.bool)  # Track points that haven't diverged (creates a grid of 1s with the same width and height as our slice)
-
-            for _ in range(max_iter):  #determines which points have diverged
-                # Calculate z^2 + c for points that haven't diverged
-
-                z_next = z[mask]**2 + c[mask]
-
-                divergence = z_next.abs() > 2  # Identify diverging points
-                temp_mask = mask.clone()
-                temp_mask[mask] = ~divergence  # Update mask to exclude diverging points
-                mask = temp_mask
-                z[mask] = z_next[~divergence]  # Update z for non-diverging points
-
-                if not mask.any():  # Stop if all points diverge
-                    break
-
-            mask_int = mask.int()
-            weights = 2 ** torch.arange(colorBits, device=mask.device, dtype=torch.int32).flip(0).unsqueeze(1)  # Shape: [rows, 1]
-            binary_concat = torch.sum(mask_int * weights, dim=0)  # Shape: [cols]
-            mandelbrot_image[:, k] = binary_concat
-
-    return mandelbrot_image.cpu().numpy()  # Move the result back to the CPU for visualization
+    return mandelbrot_image.cpu().numpy()  # Move result to the CPU for visualization
 
 if __name__ == "__main__":
     # Set the device for computation (GPU if available, otherwise CPU)
@@ -124,7 +86,7 @@ if __name__ == "__main__":
     ymin, ymax = -2, 2
     xmin, xmax = -2, 2
     tmin, tmax = -1, 1  # Range for the real component of z0
-    hmin, hmax = -2, 2  # Range for the imaginary component of z0
+    hmin, hmax = -1, 1  # Range for the imaginary component of z0
 
     # Set parameters for rendering
     height, width, time_steps, colorBits = 300, 390, 10, 24  # Resolution and animation frames, COLORBITS need not be 24
@@ -134,7 +96,7 @@ if __name__ == "__main__":
     # Initialize the video writer if saving the video
     if save_video:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # MP4 codec
-        out = cv2.VideoWriter('./videoOutput/mandelbrot_animation.mp4', fourcc, 10, (width, height))
+        out = cv2.VideoWriter('./videoOutput/outp.mp4', fourcc, 10, (width, height))
 
     # Generate a range of real values for the animation
     t_values = torch.linspace(tmin, tmax, time_steps, device=device)
@@ -154,7 +116,7 @@ if __name__ == "__main__":
     with tqdm(total=len(t_values), desc="Rendering animation") as pbar:
         for idx, t in enumerate(t_values):
             # Compute the Mandelbrot set for the current frame
-            colored = fractalFrame("T", ymin, ymax, xmin, xmax, t, hmin, hmax, width, height, 24, max_iter, device)
+            colored = fractalFrame("J", ymin, ymax, xmin, xmax, t, hmin, hmax, width, height, 24, max_iter, device)
 
             # Convert the Mandelbrot image to RGB format
             rgb_image = np.zeros((height, width, 3), dtype=np.uint8)
