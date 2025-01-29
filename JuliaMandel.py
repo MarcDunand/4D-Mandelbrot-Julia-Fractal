@@ -9,9 +9,13 @@ from threading import Timer  # For watchdog timer
 import time  # For measuring execution time
 import matplotlib.pyplot as plt  # For colormap visualization
 import matplotlib.cm as cm  # For colormaps
+import tkinter as tk  #For UI
 
 # Set up logging to record debug information to a file
 logging.basicConfig(filename='debug.log', level=logging.DEBUG)
+
+
+
 
 def check_memory():
     """
@@ -67,6 +71,26 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
 
+
+
+    #UI setup
+    # Create the main application window
+    root = tk.Tk()
+    root.title("Fractal Animation Controller")
+
+    # Create a button inside the window
+    def start_animation():
+        print("Button Pressed! Animation will start...")
+
+    start_button = tk.Button(root, text="Start Animation", command=start_animation, font=("Arial", 12))
+    start_button.pack(pady=20)  # Add some padding for spacing
+
+    # Start the Tkinter event loop
+    root.mainloop()
+
+
+
+
     while True:
         # Prompt user to select parameterization type
         print("\nChoose parameterization or 'exit' to quit:")
@@ -80,8 +104,8 @@ if __name__ == "__main__":
         tmin, tmax = -1, 1
         hmin, hmax = -1, 1
 
-        height, width, time_steps, colorBits = 1000, 1000, 60, 24
-        max_iter = 60
+        height, width, time_steps, colorBits = 300, 300, 20, 24
+        max_iter = 30
         save_video = True
 
         if save_video:
