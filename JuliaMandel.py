@@ -7,45 +7,19 @@ import gc  # For garbage collection
 import logging  # For logging events
 import matplotlib.pyplot as plt  # For colormap visualization
 import matplotlib.cm as cm  # For colormaps
-import tkinter as tk  #For UI
+import tkinter as tk  # For UI
 import threading  # To run animation without freezing UI
 import time  # For delays and timing
 
-
-
-#globals
-
-# Animation control variables
-is_running = False  # True if animation is currently playing
-is_paused = False   # True if animation is paused
+# Globals
+is_running = False   # True if animation is currently playing
+is_paused = False    # True if animation is paused
 animation_thread = None  # Holds the thread running the animation
-
-
+current_frame = 0    # Tracks current position in animation
+total_frames = 30    # Total number of frames (time_steps)
 
 # Set up logging to record debug information to a file
 logging.basicConfig(filename='debug.log', level=logging.DEBUG)
-
-
-
-
-def check_memory():
-    """
-    Monitor system memory usage (CPU and GPU). 
-    If usage is high, attempt to free resources.
-    """
-    memory = psutil.virtual_memory()
-    logging.info(f"CPU memory usage: {memory.percent}%")
-    if memory.percent > 90:
-        gc.collect()  # Trigger garbage collection if CPU memory is over 90%
-
-    # Check GPU memory usage
-    if torch.cuda.is_available():
-        reserved = torch.cuda.memory_reserved(device=device) / torch.cuda.get_device_properties(0).total_memory
-        allocated = torch.cuda.memory_allocated(device=device) / 1e6  # Convert to MB
-        logging.info(f"GPU memory reserved: {reserved * 100:.2f}%")
-        logging.info(f"GPU memory allocated: {allocated:.2f} MB")
-        if reserved > 0.9:  # If GPU memory usage exceeds 90%, clear cache
-            torch.cuda.empty_cache()
 
 
 def fractalFrame(xySlice, ymin, ymax, xmin, xmax, t, hmin, hmax, height=1000, width=1000, colorBits=24, max_iter=1000, device='cpu'):
@@ -57,59 +31,55 @@ def fractalFrame(xySlice, ymin, ymax, xmin, xmax, t, hmin, hmax, height=1000, wi
     h_values = torch.linspace(hmin, hmax, colorBits, device=device)
 
     x_grid, y_grid, h_grid = torch.meshgrid(x_values, y_values, h_values, indexing="ij")
-    t_grid = torch.full_like(x_grid, t, dtype=torch.complex64)  # Placeholder for t with the same shape
+    t_grid = torch.full_like(x_grid, t, dtype=torch.complex64)
     grids = {"H": h_grid, "X": x_grid, "Y": y_grid, "T": t_grid}
 
     z = grids[xySlice[0]] + 1j * grids[xySlice[1]]
     c = grids[xySlice[2]] + 1j * grids[xySlice[3]]
 
-    mask = torch.ones_like(z, dtype=torch.bool, device=device)  # Shape: [width, height, colorBits]
+    mask = torch.ones_like(z, dtype=torch.bool, device=device)
 
     for _ in range(max_iter):
         z_next = z**2 + c
-        divergence = z_next.abs() > 2  # Identify diverging points
-        mask = mask & ~divergence  # Update mask to exclude diverging points
-        z = torch.where(mask, z_next, z)  # Update z only for non-diverging points
+        divergence = z_next.abs() > 2
+        mask = mask & ~divergence
+        z = torch.where(mask, z_next, z)
 
-        if not mask.any():  # Stop if all points diverge
+        if not mask.any():
             break
 
-    weights = 2 ** torch.arange(colorBits, device=device, dtype=torch.int32)  # Shape: [colorBits]
-    mandelbrot_image = torch.sum(mask.int() * weights, dim=-1)  # Collapse the third dimension
+    weights = 2 ** torch.arange(colorBits, device=device, dtype=torch.int32)
+    mandelbrot_image = torch.sum(mask.int() * weights, dim=-1)
 
-    return mandelbrot_image.cpu().numpy()  # Move result to the CPU for visualization
-
-
-if __name__ == "__main__":
+    return mandelbrot_image.cpu().numpy()
 
 
-    def animation_loop():
-        global is_running, is_paused
+def animation_loop():
+    """Runs the animation, allowing pausing, resuming, and slider control."""
+    global is_running, is_paused, current_frame
 
-        is_running = True
-        xySlice = input().strip()
+    is_running = True
+    xySlice = input().strip()
 
-        if len(xySlice) != 4:
-            print("Invalid input! Please enter exactly 4 characters (e.g., 'XYHT').")
-            is_running = False
-            return
+    if len(xySlice) != 4:
+        print("Invalid input! Please enter exactly 4 characters (e.g., 'XYHT').")
+        is_running = False
+        return
 
-        print(f"Starting animation with parameterization: {xySlice}")
-            
+    print(f"Starting animation with parameterization: {xySlice}")
 
-        if save_video:
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            out = cv2.VideoWriter('./videoOutput/outp.mp4', fourcc, 10, (width, height))
+    t_values = torch.linspace(tmin, tmax, total_frames, device=device)
 
-        t_values = torch.linspace(tmin, tmax, time_steps, device=device)
+    with tqdm(total=len(t_values), desc="Rendering animation") as pbar:
+        while True:
+            if not is_running:
+                break  # Stop if user presses "Stop"
 
-        for idx, t in enumerate(t_values):
-            if not is_running:  
-                return  # Stop if user presses "Stop"
-
-            while is_paused:  
+            compare_frame = current_frame
+            while (is_paused and compare_frame == current_frame) or current_frame >= total_frames:
                 cv2.waitKey(100)  # Wait without high CPU usage
 
+            t = t_values[current_frame]  # Get t-value based on slider position
             colored = fractalFrame(xySlice, ymin, ymax, xmin, xmax, t, hmin, hmax, height, width, 24, max_iter, device)
             rgb_image = np.zeros((height, width, 3), dtype=np.uint8)
             rgb_image[..., 2] = (colored >> 16) & 0xFF
@@ -119,91 +89,163 @@ if __name__ == "__main__":
             cv2.imshow("Fractal Animation", rgb_image)
             cv2.waitKey(1)
 
-        if save_video:
-            out.release()
+            # Update slider to reflect current frame
+            progress_slider.set(current_frame)
 
-        cv2.destroyAllWindows()
-        is_running = False
+            if not is_paused:
+                current_frame += 1  # Move forward one frame
+
+            pbar.update(1)
+
+    cv2.destroyAllWindows()
+    is_running = False
+
+
+# Function to get values from entry fields before starting animation
+def update_parameters():
+    """Update global parameters from input fields before starting the animation."""
+    global ymin, ymax, xmin, xmax, tmin, tmax, hmin, hmax
+
+    try:
+        ymin = float(ymin_entry.get())
+        ymax = float(ymax_entry.get())
+        xmin = float(xmin_entry.get())
+        xmax = float(xmax_entry.get())
+        tmin = float(tmin_entry.get())
+        tmax = float(tmax_entry.get())
+        hmin = float(hmin_entry.get())
+        hmax = float(hmax_entry.get())
+        print("Updated parameters successfully.")
+    except ValueError:
+        print("Invalid input! Please enter numerical values.")
 
 
 
+def start_animation():
+    """Starts or resumes the animation in a separate thread."""
+    global animation_thread, is_paused, is_running
 
-    def pause_animation():
-        """Pauses the animation."""
-        global is_paused
-        print("Pausing animation...")
-        is_paused = True
+    update_parameters()  # Get updated values from input fields
 
+    if is_running and is_paused:
+        print("Resuming animation...")
+        is_paused = False
+    elif not is_running:
+        print("Starting new animation...")
+        is_running = True
+        is_paused = False
+        animation_thread = threading.Thread(target=animation_loop, daemon=True)
+        animation_thread.start()
+
+
+def pause_animation():
+    """Pauses the animation."""
+    global is_paused
+    print("Pausing animation...")
+    is_paused = True
+
+
+def stop_animation():
+    """Stops the animation completely and resets frame counter."""
+    global is_running, is_paused, current_frame
+    print("Stopping animation...")
+
+    is_running = False
+    is_paused = False
+    current_frame = 0  # Reset frame counter
+    progress_slider.set(0)  # Reset slider
+
+    time.sleep(1)  # Allow time for loop to exit before closing OpenCV
+    cv2.destroyAllWindows()
+
+
+def set_frame(val):
+    """Sets the current frame from the slider."""
+    global current_frame, is_paused
+    if is_paused:
+        current_frame = int(float(val))
+    else:
+        is_paused = True  # Pause while adjusting
+        current_frame = int(float(val))
+        is_paused = False
     
 
-    def stop_animation():
-        """Stops the animation completely and safely closes OpenCV."""
-        global is_running, is_paused
-        print("Stopping animation...")
+# Dimensional parameter bounds
+ymin, ymax = -1, 1
+xmin, xmax = -1, 1
+tmin, tmax = -1, 1
+hmin, hmax = -1, 1
 
-        is_running = False  # Stops the loop in animation
-        is_paused = False  # Reset pause state
+height, width, time_steps, colorBits = 500, 500, total_frames, 24
+max_iter = 30
+save_video = False
 
-        # Wait a short moment to allow loop to exit before closing OpenCV
-        time.sleep(1)
-        
-        cv2.destroyAllWindows()  # Now safe to close OpenCV window
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Using device:", device)
 
+# UI setup
+root = tk.Tk()
+root.title("Fractal Animation Controller")
 
+# Create input fields for ymin, ymax, xmin, xmax, tmin, tmax, hmin, hmax
+tk.Label(root, text="Ymin:").pack()
+ymin_entry = tk.Entry(root)
+ymin_entry.insert(0, str(ymin))  # Set default value
+ymin_entry.pack()
 
+tk.Label(root, text="Ymax:").pack()
+ymax_entry = tk.Entry(root)
+ymax_entry.insert(0, str(ymax))
+ymax_entry.pack()
 
-    
-    def start_animation(): #new version
-        """Starts or resumes the animation in a separate thread."""
-        global animation_thread, is_paused, is_running
+tk.Label(root, text="Xmin:").pack()
+xmin_entry = tk.Entry(root)
+xmin_entry.insert(0, str(xmin))
+xmin_entry.pack()
 
-        if is_running and is_paused:
-            print("Resuming animation...")
-            is_paused = False  # Resume animation
-        elif not is_running:
-            print("Starting new animation...")
-            is_running = True
-            is_paused = False
-            animation_thread = threading.Thread(target=animation_loop, daemon=True)
-            animation_thread.start()  # Run animation in a new thread
+tk.Label(root, text="Xmax:").pack()
+xmax_entry = tk.Entry(root)
+xmax_entry.insert(0, str(xmax))
+xmax_entry.pack()
 
+tk.Label(root, text="Tmin:").pack()
+tmin_entry = tk.Entry(root)
+tmin_entry.insert(0, str(tmin))
+tmin_entry.pack()
 
+tk.Label(root, text="Tmax:").pack()
+tmax_entry = tk.Entry(root)
+tmax_entry.insert(0, str(tmax))
+tmax_entry.pack()
 
-    #sets dimensional parameter bounds
-    ymin, ymax = -1, 1
-    xmin, xmax = -1, 1
-    tmin, tmax = -1, 1
-    hmin, hmax = -1, 1
+tk.Label(root, text="Hmin:").pack()
+hmin_entry = tk.Entry(root)
+hmin_entry.insert(0, str(hmin))
+hmin_entry.pack()
 
-    height, width, time_steps, colorBits = 1000, 1000, 30, 24
-    max_iter = 60
-    save_video = True
+tk.Label(root, text="Hmax:").pack()
+hmax_entry = tk.Entry(root)
+hmax_entry.insert(0, str(hmax))
+hmax_entry.pack()
 
+# Play button
+play_button = tk.Button(root, text="Play", command=start_animation, font=("Arial", 12))
+play_button.pack(pady=10)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Using device:", device)
+# Pause button
+pause_button = tk.Button(root, text="Pause", command=pause_animation, font=("Arial", 12))
+pause_button.pack(pady=10)
 
-    #UI setup
-    # Create the main application window
-    root = tk.Tk()
-    root.title("Fractal Animation Controller")
+# Stop button
+stop_button = tk.Button(root, text="Stop", command=stop_animation, font=("Arial", 12))
+stop_button.pack(pady=10)
 
+# Progress slider
+progress_slider = tk.Scale(
+    root, from_=0, to=total_frames-1, orient="horizontal", length=400,
+    command=set_frame, label="Animation Progress"
+)
+progress_slider.pack(pady=10)
 
-    # tkinter GUI
-        
-    # Play button
-    play_button = tk.Button(root, text="Play", command=start_animation, font=("Arial", 12))
-    play_button.pack(pady=10)
-
-    # Pause button
-    pause_button = tk.Button(root, text="Pause", command=pause_animation, font=("Arial", 12))
-    pause_button.pack(pady=10)
-
-    # Stop button
-    stop_button = tk.Button(root, text="Stop", command=stop_animation, font=("Arial", 12))
-    stop_button.pack(pady=10)
-
-
-
-    # Start the Tkinter event loop
-    root.mainloop()
+# Start the Tkinter event loop
+root.mainloop()
