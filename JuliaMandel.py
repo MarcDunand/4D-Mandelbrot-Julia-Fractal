@@ -14,28 +14,30 @@ import time  # For delays and timing
 # Globals
 is_running = False   # True if animation is currently playing
 is_paused = False    # True if animation is paused
+needs_update = False  #True if the animation needs to be rerendered
 animation_thread = None  # Holds the thread running the animation
 current_frame = 0    # Tracks current position in animation
-total_frames = 30    # Total number of frames (time_steps)
+tRes = 30    # Total number of frames (time_steps)
 
 # Set up logging to record debug information to a file
 logging.basicConfig(filename='debug.log', level=logging.DEBUG)
 
 
-def fractalFrame(xySlice, ymin, ymax, xmin, xmax, t, hmin, hmax, height=1000, width=1000, colorBits=24, max_iter=1000, device='cpu'):
+def generateFrame(parameterization, ymin, ymax, xmin, xmax, t, hmin, hmax, height=1000, width=1000, colorBits=24, max_iter=1000, device='cpu'):
     """
     Compute the Mandelbrot set using a 3D grid for full parallelization.
     """
-    x_values = torch.linspace(ymin, ymax, width, device=device)
-    y_values = torch.linspace(xmin, xmax, height, device=device)
+    ymin, ymax = ymax*-1, ymin*-1  #needed flip on the y axis
+    y_values = torch.linspace(ymin, ymax, height, device=device)
+    x_values = torch.linspace(xmin, xmax, width, device=device)
     h_values = torch.linspace(hmin, hmax, colorBits, device=device)
 
-    x_grid, y_grid, h_grid = torch.meshgrid(x_values, y_values, h_values, indexing="ij")
+    y_grid, x_grid, h_grid = torch.meshgrid(y_values, x_values, h_values, indexing="ij")
     t_grid = torch.full_like(x_grid, t, dtype=torch.complex64)
     grids = {"H": h_grid, "X": x_grid, "Y": y_grid, "T": t_grid}
 
-    z = grids[xySlice[0]] + 1j * grids[xySlice[1]]
-    c = grids[xySlice[2]] + 1j * grids[xySlice[3]]
+    z = grids[parameterization[0]] + 1j * grids[parameterization[1]]
+    c = grids[parameterization[2]] + 1j * grids[parameterization[3]]
 
     mask = torch.ones_like(z, dtype=torch.bool, device=device)
 
@@ -50,52 +52,53 @@ def fractalFrame(xySlice, ymin, ymax, xmin, xmax, t, hmin, hmax, height=1000, wi
 
     weights = 2 ** torch.arange(colorBits, device=device, dtype=torch.int32)
     mandelbrot_image = torch.sum(mask.int() * weights, dim=-1)
-
     return mandelbrot_image.cpu().numpy()
+
+
+def render_frame():
+    t = tmin+(tmax-tmin)*(current_frame/tRes)
+    # t_values = torch.linspace(tmin, tmax, tRes, device=device)
+    # t = t_values[current_frame]  # Get t-value based on slider position
+    colored = generateFrame(parameterization, ymin, ymax, xmin, xmax, t, hmin, hmax, yRes, xRes, hRes, max_iter, device)
+    rgb_image = np.zeros((yRes, xRes, 3), dtype=np.uint8)
+    rgb_image[..., 2] = (colored >> 16) & 0xFF
+    rgb_image[..., 1] = (colored >> 8) & 0xFF
+    rgb_image[..., 0] = colored & 0xFF
+
+    cv2.imshow("Fractal Animation", rgb_image)
+
+    cv2.waitKey(1)
+
 
 
 def animation_loop():
     """Runs the animation, allowing pausing, resuming, and slider control."""
-    global is_running, is_paused, current_frame
+    global is_running, is_paused, current_frame, needs_update
 
     is_running = True
-    xySlice = input().strip()
 
-    if len(xySlice) != 4:
-        print("Invalid input! Please enter exactly 4 characters (e.g., 'XYHT').")
-        is_running = False
-        return
+    while True:
+        # Stop if user presses "Stop"
+        if not is_running:
+            break
+        
+        # Pause if user presses "pause" or at end of animation
+        #compare_frame = current_frame
+        while (is_paused and (not needs_update)) or current_frame >= tRes:
+            cv2.waitKey(100)
+        
+        #Generates and shows the frame
+        render_frame()
 
-    print(f"Starting animation with parameterization: {xySlice}")
+        needs_update = False
 
-    t_values = torch.linspace(tmin, tmax, total_frames, device=device)
+        # Update slider to reflect current frame
+        progress_slider.set(current_frame)
+        
+        # Move forward one frame
+        if not is_paused:
+            current_frame += 1
 
-    with tqdm(total=len(t_values), desc="Rendering animation") as pbar:
-        while True:
-            if not is_running:
-                break  # Stop if user presses "Stop"
-
-            compare_frame = current_frame
-            while (is_paused and compare_frame == current_frame) or current_frame >= total_frames:
-                cv2.waitKey(100)  # Wait without high CPU usage
-
-            t = t_values[current_frame]  # Get t-value based on slider position
-            colored = fractalFrame(xySlice, ymin, ymax, xmin, xmax, t, hmin, hmax, height, width, 24, max_iter, device)
-            rgb_image = np.zeros((height, width, 3), dtype=np.uint8)
-            rgb_image[..., 2] = (colored >> 16) & 0xFF
-            rgb_image[..., 1] = (colored >> 8) & 0xFF
-            rgb_image[..., 0] = colored & 0xFF
-
-            cv2.imshow("Fractal Animation", rgb_image)
-            cv2.waitKey(1)
-
-            # Update slider to reflect current frame
-            progress_slider.set(current_frame)
-
-            if not is_paused:
-                current_frame += 1  # Move forward one frame
-
-            pbar.update(1)
 
     cv2.destroyAllWindows()
     is_running = False
@@ -104,20 +107,35 @@ def animation_loop():
 # Function to get values from entry fields before starting animation
 def update_parameters():
     """Update global parameters from input fields before starting the animation."""
-    global ymin, ymax, xmin, xmax, tmin, tmax, hmin, hmax
+    global current_frame, parameterization, ymin, ymax, yRes, xmin, xmax, xRes, tmin, tmax, tRes, hmin, hmax, hRes, max_iter
 
     try:
-        ymin = float(ymin_entry.get())
-        ymax = float(ymax_entry.get())
-        xmin = float(xmin_entry.get())
-        xmax = float(xmax_entry.get())
-        tmin = float(tmin_entry.get())
-        tmax = float(tmax_entry.get())
-        hmin = float(hmin_entry.get())
-        hmax = float(hmax_entry.get())
-        print("Updated parameters successfully.")
+        tResOld = tRes
+        
+        parameterization = str(dimen_param.get())
+
+        ymin = float(fields["Y"][0].get())
+        ymax = float(fields["Y"][1].get())
+        yRes = int(fields["Y"][2].get())
+        xmin = float(fields["X"][0].get())
+        xmax = float(fields["X"][1].get())
+        xRes = int(fields["X"][2].get())
+        tmin = float(fields["T"][0].get())
+        tmax = float(fields["T"][1].get())
+        tRes = int(fields["T"][2].get())
+        hmin = float(fields["H"][0].get())
+        hmax = float(fields["H"][1].get())
+        hRes = int(fields["H"][2].get())
+
+        max_iter = int(prec_param.get())
+
+        if tRes != tResOld:  #if time resolution has been changed, update accordingly
+            current_frame = int(current_frame*(tRes/tResOld))  #keeps proportional position in animation
+            progress_slider.config(from_=0, to=tRes - 1)  #updates the slider in case the number of frames has changed
+            progress_slider.set(current_frame)  #updates the current position of the slider
+
     except ValueError:
-        print("Invalid input! Please enter numerical values.")
+        print("Invalid input!")
 
 
 
@@ -128,10 +146,8 @@ def start_animation():
     update_parameters()  # Get updated values from input fields
 
     if is_running and is_paused:
-        print("Resuming animation...")
         is_paused = False
     elif not is_running:
-        print("Starting new animation...")
         is_running = True
         is_paused = False
         animation_thread = threading.Thread(target=animation_loop, daemon=True)
@@ -141,44 +157,67 @@ def start_animation():
 def pause_animation():
     """Pauses the animation."""
     global is_paused
-    print("Pausing animation...")
     is_paused = True
 
 
-def stop_animation():
-    """Stops the animation completely and resets frame counter."""
-    global is_running, is_paused, current_frame
-    print("Stopping animation...")
-
-    is_running = False
-    is_paused = False
-    current_frame = 0  # Reset frame counter
-    progress_slider.set(0)  # Reset slider
-
-    time.sleep(1)  # Allow time for loop to exit before closing OpenCV
-    cv2.destroyAllWindows()
+def update_animation():
+    global is_paused, needs_update
+    is_paused = True
+    update_parameters()  #updates any changed parameters
+    needs_update = True
+    
 
 
 def set_frame(val):
     """Sets the current frame from the slider."""
-    global current_frame, is_paused
+    global current_frame, is_paused, needs_update
     if is_paused:
         current_frame = int(float(val))
+        needs_update = True
     else:
         is_paused = True  # Pause while adjusting
         current_frame = int(float(val))
         is_paused = False
+
+
+def save_animation():
+    update_parameters()  # Ensure parameters are updated
+    video_filename = "./videoOutput/fractal_animation.mp4"
+    fps = 30  # 30 frames per second
+
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
+    video_writer = cv2.VideoWriter(video_filename, fourcc, fps, (xRes, yRes))
+    
+    with tqdm(total=tRes, desc="Rendering animation") as pbar:
+        for frame_idx in range(tRes):
+            global current_frame
+            current_frame = frame_idx  # Update current frame index
+            
+            t = tmin + (tmax - tmin) * (frame_idx / tRes)
+            colored = generateFrame(parameterization, ymin, ymax, xmin, xmax, t, hmin, hmax, yRes, xRes, hRes, max_iter, device)
+            
+            rgb_image = np.zeros((yRes, xRes, 3), dtype=np.uint8)
+            rgb_image[..., 2] = (colored >> 16) & 0xFF
+            rgb_image[..., 1] = (colored >> 8) & 0xFF
+            rgb_image[..., 0] = colored & 0xFF
+            
+            video_writer.write(rgb_image)  # Add frame to video
+            pbar.update(1)  # Update progress bar
+
+    video_writer.release()
+
     
 
-# Dimensional parameter bounds
+# Dimensional parameters and their bounds
+parameterization = "HTYX"
+
 ymin, ymax = -1, 1
 xmin, xmax = -1, 1
 tmin, tmax = -1, 1
 hmin, hmax = -1, 1
 
-height, width, time_steps, colorBits = 500, 500, total_frames, 24
+yRes, xRes, hRes = 500, 500, 24
 max_iter = 30
-save_video = False
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
@@ -187,65 +226,74 @@ print("Using device:", device)
 root = tk.Tk()
 root.title("Fractal Animation Controller")
 
-# Create input fields for ymin, ymax, xmin, xmax, tmin, tmax, hmin, hmax
-tk.Label(root, text="Ymin:").pack()
-ymin_entry = tk.Entry(root)
-ymin_entry.insert(0, str(ymin))  # Set default value
-ymin_entry.pack()
+# Create a dictionary to store min/max/res labels and entry fields
+fields = {
+    "Y": None,
+    "X": None,
+    "T": None,
+    "H": None
+}
 
-tk.Label(root, text="Ymax:").pack()
-ymax_entry = tk.Entry(root)
-ymax_entry.insert(0, str(ymax))
-ymax_entry.pack()
 
-tk.Label(root, text="Xmin:").pack()
-xmin_entry = tk.Entry(root)
-xmin_entry.insert(0, str(xmin))
-xmin_entry.pack()
 
-tk.Label(root, text="Xmax:").pack()
-xmax_entry = tk.Entry(root)
-xmax_entry.insert(0, str(xmax))
-xmax_entry.pack()
+tk.Label(root, text="(Zr + Zi)^2 + (Cr + Ci)").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="e")
+dimen_param = tk.Entry(root)
+dimen_param.grid(row=0, column=2, padx=5, pady=5)
+dimen_param.insert(0, parameterization)  # Inserts initial values
+tk.Label(root, text="(T, Y, X, H)").grid(row=0, column=3, padx=5, pady=5, sticky="e")
 
-tk.Label(root, text="Tmin:").pack()
-tmin_entry = tk.Entry(root)
-tmin_entry.insert(0, str(tmin))
-tmin_entry.pack()
+tk.Label(root, text="prec").grid(row=0, column=4, padx=5, pady=5, sticky="e")
+prec_param = tk.Entry(root)
+prec_param.grid(row=0, column=5, padx=5, pady=5)
+prec_param.insert(0, max_iter)  # Inserts initial values
 
-tk.Label(root, text="Tmax:").pack()
-tmax_entry = tk.Entry(root)
-tmax_entry.insert(0, str(tmax))
-tmax_entry.pack()
 
-tk.Label(root, text="Hmin:").pack()
-hmin_entry = tk.Entry(root)
-hmin_entry.insert(0, str(hmin))
-hmin_entry.pack()
+for i, key in enumerate(fields.keys()):
+    i+=1  #makes space for dimension picker above
 
-tk.Label(root, text="Hmax:").pack()
-hmax_entry = tk.Entry(root)
-hmax_entry.insert(0, str(hmax))
-hmax_entry.pack()
+    # Labels
+    tk.Label(root, text=f"{key}min:").grid(row=i, column=0, padx=5, pady=5, sticky="e")
+    tk.Label(root, text=f"{key}max:").grid(row=i, column=2, padx=5, pady=5, sticky="e")
+    tk.Label(root, text=f"{key}res:").grid(row=i, column=4, padx=5, pady=5, sticky="e")
 
-# Play button
-play_button = tk.Button(root, text="Play", command=start_animation, font=("Arial", 12))
-play_button.pack(pady=10)
+    # Entry Fields
+    min_entry = tk.Entry(root)
+    min_entry.grid(row=i, column=1, padx=5, pady=5)
+    min_entry.insert(0, str(eval(f"{key.lower()}min")))  # Inserts initial values
+
+    max_entry = tk.Entry(root)
+    max_entry.grid(row=i, column=3, padx=5, pady=5)
+    max_entry.insert(0, str(eval(f"{key.lower()}max")))
+
+    res_entry = tk.Entry(root)
+    res_entry.grid(row=i, column=5, padx=5, pady=5)
+    res_entry.insert(0, str(eval(f"{key.lower()}Res")))
+
+    # Store in dictionary if needed later
+    fields[key] = (min_entry, max_entry, res_entry)
 
 # Pause button
 pause_button = tk.Button(root, text="Pause", command=pause_animation, font=("Arial", 12))
-pause_button.pack(pady=10)
+pause_button.grid(row=5, column=1, padx=5, pady=10)
 
-# Stop button
-stop_button = tk.Button(root, text="Stop", command=stop_animation, font=("Arial", 12))
-stop_button.pack(pady=10)
+# Play button
+play_button = tk.Button(root, text="Play", command=start_animation, font=("Arial", 12))
+play_button.grid(row=5, column=2, padx=5, pady=10)
+
+# Update button
+update_button = tk.Button(root, text="Update", command=update_animation, font=("Arial", 12))
+update_button.grid(row=5, column=3, padx=5, pady=10)
+
+# Save Animation button
+save_button = tk.Button(root, text="Save Animation", command=save_animation, font=("Arial", 12))
+save_button.grid(row=5, column=4, padx=5, pady=10)
 
 # Progress slider
 progress_slider = tk.Scale(
-    root, from_=0, to=total_frames-1, orient="horizontal", length=400,
+    root, from_=0, to=tRes-1, orient="horizontal", length=400,
     command=set_frame, label="Animation Progress"
 )
-progress_slider.pack(pady=10)
+progress_slider.grid(row=6, column=0, columnspan=4, padx=5, pady=5)
 
 # Start the Tkinter event loop
 root.mainloop()
