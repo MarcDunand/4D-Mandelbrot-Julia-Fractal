@@ -180,6 +180,10 @@ def set_frame(val):
         is_paused = False
 
 
+def set_rot(val):
+    print(val)
+
+
 def save_animation():
     update_parameters()  # Ensure parameters are updated
     video_filename = "./videoOutput/fractal_animation.mp4"
@@ -294,6 +298,15 @@ progress_slider = tk.Scale(
     command=set_frame, label="Animation Progress"
 )
 progress_slider.grid(row=6, column=0, columnspan=4, padx=5, pady=5)
+
+# Rotation slider
+tk.Label(root, text="rotation:").grid(row=7, column=0, padx=5, pady=5, sticky="e")
+
+rotation_slider = tk.Scale(
+    root, from_=0, to=359, orient="horizontal", length=250,
+    command=set_rot
+)
+rotation_slider.grid(row=7, column=1, columnspan=3, padx=5, pady=5)
 
 # Start the Tkinter event loop
 root.mainloop()
