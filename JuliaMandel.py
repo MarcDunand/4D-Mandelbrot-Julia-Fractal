@@ -27,6 +27,10 @@ def generateFrame(parameterization, ymin, ymax, xmin, xmax, t, hmin, hmax, heigh
     """
     Compute the Mandelbrot set using a 3D grid for full parallelization.
     """
+    global rot_XY, rot_XT, rot_XH, rot_YT, rot_YH, rot_HT
+    
+    rotational_planes = {"XY": rot_XY, "XT": rot_XT, "XH": rot_XH, "YT": rot_YT, "YH": rot_YH, "HT": rot_HT}
+
     ymin, ymax = ymax*-1, ymin*-1  #needed flip on the y axis
     y_values = torch.linspace(ymin, ymax, height, device=device)
     x_values = torch.linspace(xmin, xmax, width, device=device)
@@ -35,6 +39,30 @@ def generateFrame(parameterization, ymin, ymax, xmin, xmax, t, hmin, hmax, heigh
     y_grid, x_grid, h_grid = torch.meshgrid(y_values, x_values, h_values, indexing="ij")
     t_grid = torch.full_like(x_grid, t, dtype=torch.complex64)
     grids = {"H": h_grid, "X": x_grid, "Y": y_grid, "T": t_grid}
+
+    
+
+    for plane, rot in rotational_planes.items():  #number of cardinal planes in 4D space
+        if rot > 0.001:
+            axis1 = plane[0]
+            axis2 = plane[1]
+
+            # Ensure rotation is a tensor
+            tensorRot = torch.tensor(rot, device=device)
+
+            # Compute cosine and sine of the rotation angle
+            cosT, sinT = torch.cos(tensorRot), torch.sin(tensorRot)
+
+            # Store original X values before modification
+            axis1_original = grids[axis1].clone()
+
+            # Correctly apply the 2D rotation transformation
+            grids[axis1] = axis1_original * cosT - torch.real(grids[axis2]) * sinT
+            grids[axis2] = axis1_original * sinT + torch.real(grids[axis2]) * cosT
+
+
+
+
 
     z = grids[parameterization[0]] + 1j * grids[parameterization[1]]
     c = grids[parameterization[2]] + 1j * grids[parameterization[3]]
@@ -161,7 +189,7 @@ def pause_animation():
 
 
 def update_animation():
-    global is_paused, needs_update
+    global is_paused, needs_update, rot
     is_paused = True
     update_parameters()  #updates any changed parameters
     needs_update = True
@@ -180,8 +208,41 @@ def set_frame(val):
         is_paused = False
 
 
-def set_rot(val):
-    print(val)
+def set_rot_XY(val):
+    global needs_update, rot_XY
+    rot_XY = float(val) * np.pi / 180.0
+    if is_paused:
+        needs_update = True
+
+def set_rot_XH(val):
+    global needs_update, rot_XH
+    rot_XH = float(val) * np.pi / 180.0
+    if is_paused:
+        needs_update = True
+
+def set_rot_XT(val):
+    global needs_update, rot_XT
+    rot_XT = float(val) * np.pi / 180.0
+    if is_paused:
+        needs_update = True
+
+def set_rot_YH(val):
+    global needs_update, rot_YH
+    rot_YH = float(val) * np.pi / 180.0
+    if is_paused:
+        needs_update = True
+
+def set_rot_YT(val):
+    global needs_update, rot_YT
+    rot_YT = float(val) * np.pi / 180.0
+    if is_paused:
+        needs_update = True
+
+def set_rot_HT(val):
+    global needs_update, rot_HT
+    rot_HT = float(val) * np.pi / 180.0
+    if is_paused:
+        needs_update = True
 
 
 def save_animation():
@@ -214,13 +275,19 @@ def save_animation():
 
 # Dimensional parameters and their bounds
 parameterization = "HTYX"
+rot_XY = 0.0
+rot_XT = 0.0
+rot_XH = 0.0
+rot_YT = 0.0
+rot_YH = 0.0
+rot_HT = 0.0
 
 ymin, ymax = -1, 1
 xmin, xmax = -1, 1
 tmin, tmax = -1, 1
 hmin, hmax = -1, 1
 
-yRes, xRes, hRes = 500, 500, 24
+yRes, xRes, hRes = 300, 300, 24
 max_iter = 30
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -299,14 +366,49 @@ progress_slider = tk.Scale(
 )
 progress_slider.grid(row=6, column=0, columnspan=4, padx=5, pady=5)
 
-# Rotation slider
-tk.Label(root, text="rotation:").grid(row=7, column=0, padx=5, pady=5, sticky="e")
+# Rotation sliders
 
+tk.Label(root, text="XY rotation:").grid(row=7, column=0, padx=5, sticky="e")
 rotation_slider = tk.Scale(
-    root, from_=0, to=359, orient="horizontal", length=250,
-    command=set_rot
+    root, from_=0, to=359, orient="horizontal", length=360,
+    command=set_rot_XY
 )
 rotation_slider.grid(row=7, column=1, columnspan=3, padx=5, pady=5)
+
+tk.Label(root, text="XH rotation:").grid(row=8, column=0, padx=5, sticky="e")
+rotation_slider = tk.Scale(
+    root, from_=0, to=359, orient="horizontal", length=360,
+    command=set_rot_XH
+)
+rotation_slider.grid(row=8, column=1, columnspan=3, padx=5, pady=5)
+
+tk.Label(root, text="XT rotation:").grid(row=9, column=0, padx=5, sticky="e")
+rotation_slider = tk.Scale(
+    root, from_=0, to=359, orient="horizontal", length=360,
+    command=set_rot_XT
+)
+rotation_slider.grid(row=9, column=1, columnspan=3, padx=5, pady=5)
+
+tk.Label(root, text="YH rotation:").grid(row=10, column=0, padx=5, sticky="e")
+rotation_slider = tk.Scale(
+    root, from_=0, to=359, orient="horizontal", length=360,
+    command=set_rot_YH
+)
+rotation_slider.grid(row=10, column=1, columnspan=3, padx=5, pady=5)
+
+tk.Label(root, text="YT rotation:").grid(row=11, column=0, padx=5, sticky="e")
+rotation_slider = tk.Scale(
+    root, from_=0, to=359, orient="horizontal", length=360,
+    command=set_rot_YT
+)
+rotation_slider.grid(row=11, column=1, columnspan=3, padx=5, pady=5)
+
+tk.Label(root, text="HT rotation:").grid(row=12, column=0, padx=5, sticky="e")
+rotation_slider = tk.Scale(
+    root, from_=0, to=359, orient="horizontal", length=360,
+    command=set_rot_HT
+)
+rotation_slider.grid(row=12, column=1, columnspan=3, padx=5, pady=5)
 
 # Start the Tkinter event loop
 root.mainloop()
