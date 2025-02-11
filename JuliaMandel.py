@@ -19,10 +19,6 @@ animation_thread = None  # Holds the thread running the animation
 current_frame = 0    # Tracks current position in animation
 tRes = 30    # Total number of frames (time_steps)
 
-# Set up logging to record debug information to a file
-logging.basicConfig(filename='debug.log', level=logging.DEBUG)
-
-
 def generateFrame(parameterization, ymin, ymax, xmin, xmax, t, hmin, hmax, height=1000, width=1000, colorBits=24, max_iter=1000, device='cpu'):
     """
     Compute the Mandelbrot set using a 3D grid for full parallelization.
@@ -83,8 +79,9 @@ def generateFrame(parameterization, ymin, ymax, xmin, xmax, t, hmin, hmax, heigh
     return mandelbrot_image.cpu().numpy()
 
 
-def render_frame():
-    t = tmin+(tmax-tmin)*(current_frame/tRes)
+def render_frame(t = None):
+    if t == None:
+        t = tmin+(tmax-tmin)*(current_frame/tRes)
     # t_values = torch.linspace(tmin, tmax, tRes, device=device)
     # t = t_values[current_frame]  # Get t-value based on slider position
     colored = generateFrame(parameterization, ymin, ymax, xmin, xmax, t, hmin, hmax, yRes, xRes, hRes, max_iter, device)
@@ -271,6 +268,39 @@ def save_animation():
 
     video_writer.release()
 
+
+
+
+def generateFromCode(initParams, commands):
+    global device, max_iter, parameterization, ymin, ymax, yRes, xmin, xmax, xRes, hmin, hmax, hRes, max_iter, rot_XY, rot_XT, rot_XH, rot_YT, rot_YH, rot_HT 
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Using device:", device)
+
+    parameterization = initParams['parameterization']
+    yRes  = initParams['Yres']
+    xRes  = initParams['Xres']
+    hRes  = initParams['Hres']
+
+    max_iter  = initParams['precision']
+    time  = initParams['time']
+    ymin  = initParams['Ymin']
+    ymax  = initParams['Ymax']
+    xmin  = initParams['Xmin']
+    xmax  = initParams['Xmax']
+    hmin  = initParams['Hmin']
+    hmax  = initParams['Hmax']
+    rot_XY  = initParams['XYrot']
+    rot_XT  = initParams['XTrot']
+    rot_XH  = initParams['XHrot']
+    rot_YT  = initParams['YTrot']
+    rot_YH  = initParams['YHrot']
+    rot_HT   = initParams['HTrot']
+
+
+    for cmd in commands:
+        render_frame(time)
+
     
 
 # Dimensional parameters and their bounds
@@ -290,14 +320,10 @@ hmin, hmax = -1, 1
 yRes, xRes, hRes = 300, 300, 24
 max_iter = 30
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Using device:", device)
 
-# UI setup
-root = tk.Tk()
-root.title("Fractal Animation Controller")
+device = None
 
-# Create a dictionary to store min/max/res labels and entry fields
+
 fields = {
     "Y": None,
     "X": None,
@@ -305,110 +331,134 @@ fields = {
     "H": None
 }
 
+dimen_param = None
+prec_param = None
+progress_slider = None
 
 
-tk.Label(root, text="(Zr + Zi)^2 + (Cr + Ci)").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="e")
-dimen_param = tk.Entry(root)
-dimen_param.grid(row=0, column=2, padx=5, pady=5)
-dimen_param.insert(0, parameterization)  # Inserts initial values
-tk.Label(root, text="(T, Y, X, H)").grid(row=0, column=3, padx=5, pady=5, sticky="e")
 
-tk.Label(root, text="prec").grid(row=0, column=4, padx=5, pady=5, sticky="e")
-prec_param = tk.Entry(root)
-prec_param.grid(row=0, column=5, padx=5, pady=5)
-prec_param.insert(0, max_iter)  # Inserts initial values
+def main():
+    global device, fields, dimen_param, prec_param, progress_slider
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Using device:", device)
+
+    # UI setup
+    root = tk.Tk()
+    root.title("Fractal Animation Controller")
+
+    # Create a dictionary to store min/max/res labels and entry fields
+    
 
 
-for i, key in enumerate(fields.keys()):
-    i+=1  #makes space for dimension picker above
 
-    # Labels
-    tk.Label(root, text=f"{key}min:").grid(row=i, column=0, padx=5, pady=5, sticky="e")
-    tk.Label(root, text=f"{key}max:").grid(row=i, column=2, padx=5, pady=5, sticky="e")
-    tk.Label(root, text=f"{key}res:").grid(row=i, column=4, padx=5, pady=5, sticky="e")
+    tk.Label(root, text="(Zr + Zi)^2 + (Cr + Ci)").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="e")
+    dimen_param = tk.Entry(root)
+    dimen_param.grid(row=0, column=2, padx=5, pady=5)
+    dimen_param.insert(0, parameterization)  # Inserts initial values
+    tk.Label(root, text="(T, Y, X, H)").grid(row=0, column=3, padx=5, pady=5, sticky="e")
 
-    # Entry Fields
-    min_entry = tk.Entry(root)
-    min_entry.grid(row=i, column=1, padx=5, pady=5)
-    min_entry.insert(0, str(eval(f"{key.lower()}min")))  # Inserts initial values
+    tk.Label(root, text="prec").grid(row=0, column=4, padx=5, pady=5, sticky="e")
+    prec_param = tk.Entry(root)
+    prec_param.grid(row=0, column=5, padx=5, pady=5)
+    prec_param.insert(0, max_iter)  # Inserts initial values
 
-    max_entry = tk.Entry(root)
-    max_entry.grid(row=i, column=3, padx=5, pady=5)
-    max_entry.insert(0, str(eval(f"{key.lower()}max")))
 
-    res_entry = tk.Entry(root)
-    res_entry.grid(row=i, column=5, padx=5, pady=5)
-    res_entry.insert(0, str(eval(f"{key.lower()}Res")))
+    for i, key in enumerate(fields.keys()):
+        i+=1  #makes space for dimension picker above
 
-    # Store in dictionary if needed later
-    fields[key] = (min_entry, max_entry, res_entry)
+        # Labels
+        tk.Label(root, text=f"{key}min:").grid(row=i, column=0, padx=5, pady=5, sticky="e")
+        tk.Label(root, text=f"{key}max:").grid(row=i, column=2, padx=5, pady=5, sticky="e")
+        tk.Label(root, text=f"{key}res:").grid(row=i, column=4, padx=5, pady=5, sticky="e")
 
-# Pause button
-pause_button = tk.Button(root, text="Pause", command=pause_animation, font=("Arial", 12))
-pause_button.grid(row=5, column=1, padx=5, pady=10)
+        # Entry Fields
+        min_entry = tk.Entry(root)
+        min_entry.grid(row=i, column=1, padx=5, pady=5)
+        min_entry.insert(0, str(eval(f"{key.lower()}min")))  # Inserts initial values
 
-# Play button
-play_button = tk.Button(root, text="Play", command=start_animation, font=("Arial", 12))
-play_button.grid(row=5, column=2, padx=5, pady=10)
+        max_entry = tk.Entry(root)
+        max_entry.grid(row=i, column=3, padx=5, pady=5)
+        max_entry.insert(0, str(eval(f"{key.lower()}max")))
 
-# Update button
-update_button = tk.Button(root, text="Update", command=update_animation, font=("Arial", 12))
-update_button.grid(row=5, column=3, padx=5, pady=10)
+        res_entry = tk.Entry(root)
+        res_entry.grid(row=i, column=5, padx=5, pady=5)
+        res_entry.insert(0, str(eval(f"{key.lower()}Res")))
 
-# Save Animation button
-save_button = tk.Button(root, text="Save Animation", command=save_animation, font=("Arial", 12))
-save_button.grid(row=5, column=4, padx=5, pady=10)
+        # Store in dictionary if needed later
+        fields[key] = (min_entry, max_entry, res_entry)
 
-# Progress slider
-progress_slider = tk.Scale(
-    root, from_=0, to=tRes-1, orient="horizontal", length=400,
-    command=set_frame, label="Animation Progress"
-)
-progress_slider.grid(row=6, column=0, columnspan=4, padx=5, pady=5)
+    # Pause button
+    pause_button = tk.Button(root, text="Pause", command=pause_animation, font=("Arial", 12))
+    pause_button.grid(row=5, column=1, padx=5, pady=10)
 
-# Rotation sliders
+    # Play button
+    play_button = tk.Button(root, text="Play", command=start_animation, font=("Arial", 12))
+    play_button.grid(row=5, column=2, padx=5, pady=10)
 
-tk.Label(root, text="XY rotation:").grid(row=7, column=0, padx=5, sticky="e")
-rotation_slider = tk.Scale(
-    root, from_=0, to=359, orient="horizontal", length=360,
-    command=set_rot_XY
-)
-rotation_slider.grid(row=7, column=1, columnspan=3, padx=5, pady=5)
+    # Update button
+    update_button = tk.Button(root, text="Update", command=update_animation, font=("Arial", 12))
+    update_button.grid(row=5, column=3, padx=5, pady=10)
 
-tk.Label(root, text="XH rotation:").grid(row=8, column=0, padx=5, sticky="e")
-rotation_slider = tk.Scale(
-    root, from_=0, to=359, orient="horizontal", length=360,
-    command=set_rot_XH
-)
-rotation_slider.grid(row=8, column=1, columnspan=3, padx=5, pady=5)
+    # Save Animation button
+    save_button = tk.Button(root, text="Save Animation", command=save_animation, font=("Arial", 12))
+    save_button.grid(row=5, column=4, padx=5, pady=10)
 
-tk.Label(root, text="XT rotation:").grid(row=9, column=0, padx=5, sticky="e")
-rotation_slider = tk.Scale(
-    root, from_=0, to=359, orient="horizontal", length=360,
-    command=set_rot_XT
-)
-rotation_slider.grid(row=9, column=1, columnspan=3, padx=5, pady=5)
+    # Progress slider
+    progress_slider = tk.Scale(
+        root, from_=0, to=tRes-1, orient="horizontal", length=400,
+        command=set_frame, label="Animation Progress"
+    )
+    progress_slider.grid(row=6, column=0, columnspan=4, padx=5, pady=5)
 
-tk.Label(root, text="YH rotation:").grid(row=10, column=0, padx=5, sticky="e")
-rotation_slider = tk.Scale(
-    root, from_=0, to=359, orient="horizontal", length=360,
-    command=set_rot_YH
-)
-rotation_slider.grid(row=10, column=1, columnspan=3, padx=5, pady=5)
+    # Rotation sliders
 
-tk.Label(root, text="YT rotation:").grid(row=11, column=0, padx=5, sticky="e")
-rotation_slider = tk.Scale(
-    root, from_=0, to=359, orient="horizontal", length=360,
-    command=set_rot_YT
-)
-rotation_slider.grid(row=11, column=1, columnspan=3, padx=5, pady=5)
+    tk.Label(root, text="XY rotation:").grid(row=7, column=0, padx=5, sticky="e")
+    rotation_slider = tk.Scale(
+        root, from_=0, to=359, orient="horizontal", length=360,
+        command=set_rot_XY
+    )
+    rotation_slider.grid(row=7, column=1, columnspan=3, padx=5, pady=5)
 
-tk.Label(root, text="HT rotation:").grid(row=12, column=0, padx=5, sticky="e")
-rotation_slider = tk.Scale(
-    root, from_=0, to=359, orient="horizontal", length=360,
-    command=set_rot_HT
-)
-rotation_slider.grid(row=12, column=1, columnspan=3, padx=5, pady=5)
+    tk.Label(root, text="XH rotation:").grid(row=8, column=0, padx=5, sticky="e")
+    rotation_slider = tk.Scale(
+        root, from_=0, to=359, orient="horizontal", length=360,
+        command=set_rot_XH
+    )
+    rotation_slider.grid(row=8, column=1, columnspan=3, padx=5, pady=5)
 
-# Start the Tkinter event loop
-root.mainloop()
+    tk.Label(root, text="XT rotation:").grid(row=9, column=0, padx=5, sticky="e")
+    rotation_slider = tk.Scale(
+        root, from_=0, to=359, orient="horizontal", length=360,
+        command=set_rot_XT
+    )
+    rotation_slider.grid(row=9, column=1, columnspan=3, padx=5, pady=5)
+
+    tk.Label(root, text="YH rotation:").grid(row=10, column=0, padx=5, sticky="e")
+    rotation_slider = tk.Scale(
+        root, from_=0, to=359, orient="horizontal", length=360,
+        command=set_rot_YH
+    )
+    rotation_slider.grid(row=10, column=1, columnspan=3, padx=5, pady=5)
+
+    tk.Label(root, text="YT rotation:").grid(row=11, column=0, padx=5, sticky="e")
+    rotation_slider = tk.Scale(
+        root, from_=0, to=359, orient="horizontal", length=360,
+        command=set_rot_YT
+    )
+    rotation_slider.grid(row=11, column=1, columnspan=3, padx=5, pady=5)
+
+    tk.Label(root, text="HT rotation:").grid(row=12, column=0, padx=5, sticky="e")
+    rotation_slider = tk.Scale(
+        root, from_=0, to=359, orient="horizontal", length=360,
+        command=set_rot_HT
+    )
+    rotation_slider.grid(row=12, column=1, columnspan=3, padx=5, pady=5)
+
+    # Start the Tkinter event loop
+    root.mainloop()
+
+
+
+if __name__ == "__main__":
+    main()
