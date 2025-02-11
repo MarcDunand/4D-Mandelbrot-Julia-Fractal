@@ -269,8 +269,6 @@ def save_animation():
     video_writer.release()
 
 
-
-
 def generateFromCode(initParams, commands):
     global device, max_iter, parameterization, ymin, ymax, yRes, xmin, xmax, xRes, hmin, hmax, hRes, max_iter, rot_XY, rot_XT, rot_XH, rot_YT, rot_YH, rot_HT 
 
