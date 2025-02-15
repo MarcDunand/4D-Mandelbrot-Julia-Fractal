@@ -1,4 +1,7 @@
 import JuliaMandel
+from itertools import islice
+
+record = True
 
 
 with open("mandelCmds.txt", "r") as file:
@@ -17,12 +20,18 @@ commands = [{'s':int(cmd[0]),
              'p':cmd[2], 
              'v':float(cmd[3])} for cmd in commands]
 
+maxT = 0
+for cmd in commands:
+    if cmd['e'] > maxT:
+        maxT = cmd['e']
+
+
 initVals = {'parameterization': initVals[0],
             'Yres': int(initVals[1]),
             'Xres': int(initVals[2]),
+            
             'Hres': int(initVals[3]),
-
-            'precision': int(initVals[4]),
+            'prec': int(initVals[4]),
             'time': float(initVals[5]),
             'Ymin': float(initVals[6]),
             'Ymax': float(initVals[7]),
@@ -38,12 +47,41 @@ initVals = {'parameterization': initVals[0],
             'HTrot': float(initVals[17])}
 
 
+params = [dict(islice(initVals.items(), 3, None))]*maxT
 
-maxT = 0
-for cmd in commands:
-    if cmd['e'] > maxT:
-        maxT = cmd['e']
+commands = sorted(commands, key=lambda x: x["s"])
 
-params = [[0]+[0.0]*13]*maxT
+paramsIdx = 1
+cmdsIdx = 0
+curParams = {"cur" : params[0], "delta" : {key : 0.0 for key in params[0]}, "frames" : {key : 0 for key in params[0]}}
 
-JuliaMandel.generateFromCode(initVals, params)
+while paramsIdx < len(params):
+    while cmdsIdx < len(commands) and paramsIdx == commands[cmdsIdx]["s"]:
+        cmd = commands[cmdsIdx]
+
+        tDiff = cmd["e"] - cmd["s"]
+        vDiff = cmd["v"] - curParams["cur"][cmd["p"]]
+        slope = vDiff/tDiff
+
+        curParams["delta"][cmd["p"]] = slope
+        curParams["frames"][cmd["p"]] = tDiff
+
+        cmdsIdx += 1
+
+    curParams["cur"] = {k: curParams["cur"][k] + curParams["delta"][k] for k in curParams["cur"]}
+    curParams["frames"] = {k: v - 1 if v > 0 else v for k, v in curParams["frames"].items()}
+
+    for k, v in curParams["frames"].items():
+        if v == 0:
+            curParams["delta"][k] = 0.0
+
+
+    
+    params[paramsIdx] = curParams["cur"]
+    paramsIdx+=1
+
+
+
+
+
+JuliaMandel.generateFromCode(initVals, params, record)

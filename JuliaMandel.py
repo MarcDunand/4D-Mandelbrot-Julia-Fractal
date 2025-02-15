@@ -17,20 +17,20 @@ is_paused = False    # True if animation is paused
 needs_update = False  #True if the animation needs to be rerendered
 animation_thread = None  # Holds the thread running the animation
 current_frame = 0    # Tracks current position in animation
-tRes = 30    # Total number of frames (time_steps)
+Tres = 30    # Total number of frames (time_steps)
 
-def generateFrame(parameterization, ymin, ymax, xmin, xmax, t, hmin, hmax, height=1000, width=1000, colorBits=24, max_iter=1000, device='cpu'):
+def generateFrame(parameterization, Ymin, Ymax, Xmin, Xmax, t, Hmin, Hmax, height=1000, width=1000, colorBits=24, prec=1000, device='cpu'):
     """
     Compute the Mandelbrot set using a 3D grid for full parallelization.
     """
-    global rot_XY, rot_XT, rot_XH, rot_YT, rot_YH, rot_HT
+    global XYrot, XTrot, XHrot, YTrot, YHrot, HTrot
     
-    rotational_planes = {"XY": rot_XY, "XT": rot_XT, "XH": rot_XH, "YT": rot_YT, "YH": rot_YH, "HT": rot_HT}
+    rotational_planes = {"XY": XYrot, "XT": XTrot, "XH": XHrot, "YT": YTrot, "YH": YHrot, "HT": HTrot}
 
-    ymin, ymax = ymax*-1, ymin*-1  #needed flip on the y axis
-    y_values = torch.linspace(ymin, ymax, height, device=device)
-    x_values = torch.linspace(xmin, xmax, width, device=device)
-    h_values = torch.linspace(hmin, hmax, colorBits, device=device)
+    Ymin, Ymax = Ymax*-1, Ymin*-1  #needed flip on the y axis
+    y_values = torch.linspace(Ymin, Ymax, height, device=device)
+    x_values = torch.linspace(Xmin, Xmax, width, device=device)
+    h_values = torch.linspace(Hmin, Hmax, colorBits, device=device)
 
     y_grid, x_grid, h_grid = torch.meshgrid(y_values, x_values, h_values, indexing="ij")
     t_grid = torch.full_like(x_grid, t, dtype=torch.complex64)
@@ -65,7 +65,7 @@ def generateFrame(parameterization, ymin, ymax, xmin, xmax, t, hmin, hmax, heigh
 
     mask = torch.ones_like(z, dtype=torch.bool, device=device)
 
-    for _ in range(max_iter):
+    for _ in range(prec):
         z_next = z**2 + c
         divergence = z_next.abs() > 2
         mask = mask & ~divergence
@@ -81,11 +81,11 @@ def generateFrame(parameterization, ymin, ymax, xmin, xmax, t, hmin, hmax, heigh
 
 def render_frame(t = None):
     if t == None:
-        t = tmin+(tmax-tmin)*(current_frame/tRes)
-    # t_values = torch.linspace(tmin, tmax, tRes, device=device)
+        t = Tmin+(Tmax-Tmin)*(current_frame/Tres)
+    # t_values = torch.linspace(Tmin, Tmax, Tres, device=device)
     # t = t_values[current_frame]  # Get t-value based on slider position
-    colored = generateFrame(parameterization, ymin, ymax, xmin, xmax, t, hmin, hmax, yRes, xRes, hRes, max_iter, device)
-    rgb_image = np.zeros((yRes, xRes, 3), dtype=np.uint8)
+    colored = generateFrame(parameterization, Ymin, Ymax, Xmin, Xmax, t, Hmin, Hmax, Yres, Xres, Hres, prec, device)
+    rgb_image = np.zeros((Yres, Xres, 3), dtype=np.uint8)
     rgb_image[..., 2] = (colored >> 16) & 0xFF
     rgb_image[..., 1] = (colored >> 8) & 0xFF
     rgb_image[..., 0] = colored & 0xFF
@@ -93,6 +93,8 @@ def render_frame(t = None):
     cv2.imshow("Fractal Animation", rgb_image)
 
     cv2.waitKey(1)
+
+    return rgb_image
 
 
 
@@ -109,7 +111,7 @@ def animation_loop():
         
         # Pause if user presses "pause" or at end of animation
         #compare_frame = current_frame
-        while (is_paused and (not needs_update)) or current_frame >= tRes:
+        while (is_paused and (not needs_update)) or current_frame >= Tres:
             cv2.waitKey(100)
         
         #Generates and shows the frame
@@ -132,31 +134,31 @@ def animation_loop():
 # Function to get values from entry fields before starting animation
 def update_parameters():
     """Update global parameters from input fields before starting the animation."""
-    global current_frame, parameterization, ymin, ymax, yRes, xmin, xmax, xRes, tmin, tmax, tRes, hmin, hmax, hRes, max_iter
+    global current_frame, parameterization, Ymin, Ymax, Yres, Xmin, Xmax, Xres, Tmin, Tmax, Tres, Hmin, Hmax, Hres, prec
 
     try:
-        tResOld = tRes
+        TresOld = Tres
         
         parameterization = str(dimen_param.get())
 
-        ymin = float(fields["Y"][0].get())
-        ymax = float(fields["Y"][1].get())
-        yRes = int(fields["Y"][2].get())
-        xmin = float(fields["X"][0].get())
-        xmax = float(fields["X"][1].get())
-        xRes = int(fields["X"][2].get())
-        tmin = float(fields["T"][0].get())
-        tmax = float(fields["T"][1].get())
-        tRes = int(fields["T"][2].get())
-        hmin = float(fields["H"][0].get())
-        hmax = float(fields["H"][1].get())
-        hRes = int(fields["H"][2].get())
+        Ymin = float(fields["Y"][0].get())
+        Ymax = float(fields["Y"][1].get())
+        Yres = int(fields["Y"][2].get())
+        Xmin = float(fields["X"][0].get())
+        Xmax = float(fields["X"][1].get())
+        Xres = int(fields["X"][2].get())
+        Tmin = float(fields["T"][0].get())
+        Tmax = float(fields["T"][1].get())
+        Tres = int(fields["T"][2].get())
+        Hmin = float(fields["H"][0].get())
+        Hmax = float(fields["H"][1].get())
+        Hres = int(fields["H"][2].get())
 
-        max_iter = int(prec_param.get())
+        prec = int(prec_param.get())
 
-        if tRes != tResOld:  #if time resolution has been changed, update accordingly
-            current_frame = int(current_frame*(tRes/tResOld))  #keeps proportional position in animation
-            progress_slider.config(from_=0, to=tRes - 1)  #updates the slider in case the number of frames has changed
+        if Tres != TresOld:  #if time resolution has been changed, update accordingly
+            current_frame = int(current_frame*(Tres/TresOld))  #keeps proportional position in animation
+            progress_slider.config(from_=0, to=Tres - 1)  #updates the slider in case the number of frames has changed
             progress_slider.set(current_frame)  #updates the current position of the slider
 
     except ValueError:
@@ -205,39 +207,39 @@ def set_frame(val):
         is_paused = False
 
 
-def set_rot_XY(val):
-    global needs_update, rot_XY
-    rot_XY = float(val) * np.pi / 180.0
+def set_XYrot(val):
+    global needs_update, XYrot
+    XYrot = float(val) * np.pi / 180.0
     if is_paused:
         needs_update = True
 
-def set_rot_XH(val):
-    global needs_update, rot_XH
-    rot_XH = float(val) * np.pi / 180.0
+def set_XHrot(val):
+    global needs_update, XHrot
+    XHrot = float(val) * np.pi / 180.0
     if is_paused:
         needs_update = True
 
-def set_rot_XT(val):
-    global needs_update, rot_XT
-    rot_XT = float(val) * np.pi / 180.0
+def set_XTrot(val):
+    global needs_update, XTrot
+    XTrot = float(val) * np.pi / 180.0
     if is_paused:
         needs_update = True
 
-def set_rot_YH(val):
-    global needs_update, rot_YH
-    rot_YH = float(val) * np.pi / 180.0
+def set_YHrot(val):
+    global needs_update, YHrot
+    YHrot = float(val) * np.pi / 180.0
     if is_paused:
         needs_update = True
 
-def set_rot_YT(val):
-    global needs_update, rot_YT
-    rot_YT = float(val) * np.pi / 180.0
+def set_YTrot(val):
+    global needs_update, YTrot
+    YTrot = float(val) * np.pi / 180.0
     if is_paused:
         needs_update = True
 
-def set_rot_HT(val):
-    global needs_update, rot_HT
-    rot_HT = float(val) * np.pi / 180.0
+def set_HTrot(val):
+    global needs_update, HTrot
+    HTrot = float(val) * np.pi / 180.0
     if is_paused:
         needs_update = True
 
@@ -248,17 +250,17 @@ def save_animation():
     fps = 30  # 30 frames per second
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
-    video_writer = cv2.VideoWriter(video_filename, fourcc, fps, (xRes, yRes))
+    video_writer = cv2.VideoWriter(video_filename, fourcc, fps, (Xres, Yres))
     
-    with tqdm(total=tRes, desc="Rendering animation") as pbar:
-        for frame_idx in range(tRes):
+    with tqdm(total=Tres, desc="Rendering animation") as pbar:
+        for frame_idx in range(Tres):
             global current_frame
             current_frame = frame_idx  # Update current frame index
             
-            t = tmin + (tmax - tmin) * (frame_idx / tRes)
-            colored = generateFrame(parameterization, ymin, ymax, xmin, xmax, t, hmin, hmax, yRes, xRes, hRes, max_iter, device)
+            t = Tmin + (Tmax - Tmin) * (frame_idx / Tres)
+            colored = generateFrame(parameterization, Ymin, Ymax, Xmin, Xmax, t, Hmin, Hmax, Yres, Xres, Hres, prec, device)
             
-            rgb_image = np.zeros((yRes, xRes, 3), dtype=np.uint8)
+            rgb_image = np.zeros((Yres, Xres, 3), dtype=np.uint8)
             rgb_image[..., 2] = (colored >> 16) & 0xFF
             rgb_image[..., 1] = (colored >> 8) & 0xFF
             rgb_image[..., 0] = colored & 0xFF
@@ -269,54 +271,86 @@ def save_animation():
     video_writer.release()
 
 
-def generateFromCode(initParams, commands):
-    global device, max_iter, parameterization, ymin, ymax, yRes, xmin, xmax, xRes, hmin, hmax, hRes, max_iter, rot_XY, rot_XT, rot_XH, rot_YT, rot_YH, rot_HT 
+def generateFromCode(initParams, commands, record):
+    global device, prec, parameterization, Ymin, Ymax, Yres, Xmin, Xmax, Xres, Hmin, Hmax, Hres, prec, XYrot, XTrot, XHrot, YTrot, YHrot, HTrot 
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
 
     parameterization = initParams['parameterization']
-    yRes  = initParams['Yres']
-    xRes  = initParams['Xres']
-    hRes  = initParams['Hres']
+    Yres  = initParams['Yres']
+    Xres  = initParams['Xres']
 
-    max_iter  = initParams['precision']
+    Hres  = int(initParams['Hres'])
+    prec  = int(initParams['prec'])
     time  = initParams['time']
-    ymin  = initParams['Ymin']
-    ymax  = initParams['Ymax']
-    xmin  = initParams['Xmin']
-    xmax  = initParams['Xmax']
-    hmin  = initParams['Hmin']
-    hmax  = initParams['Hmax']
-    rot_XY  = initParams['XYrot']
-    rot_XT  = initParams['XTrot']
-    rot_XH  = initParams['XHrot']
-    rot_YT  = initParams['YTrot']
-    rot_YH  = initParams['YHrot']
-    rot_HT   = initParams['HTrot']
+    Ymin  = initParams['Ymin']
+    Ymax  = initParams['Ymax']
+    Xmin  = initParams['Xmin']
+    Xmax  = initParams['Xmax']
+    Hmin  = initParams['Hmin']
+    Hmax  = initParams['Hmax']
+    XYrot  = initParams['XYrot']
+    XTrot  = initParams['XTrot']
+    XHrot  = initParams['XHrot']
+    YTrot  = initParams['YTrot']
+    YHrot  = initParams['YHrot']
+    HTrot  = initParams['HTrot']
 
+    if record:
+        video_filename = "./videoOutput/frac_cmded.mp4"
+        fps = 30  # 30 frames per second
 
-    for cmd in commands:
-        render_frame(time)
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
+        video_writer = cv2.VideoWriter(video_filename, fourcc, fps, (Xres, Yres))
+
+    with tqdm(total=len(commands), desc="Rendering animation") as pbar:
+        for cmd in commands:
+            Hres  = int(cmd['Hres'])
+            prec  = int(cmd['prec'])
+            time  = cmd['time']
+            Ymin  = cmd['Ymin']
+            Ymax  = cmd['Ymax']
+            Xmin  = cmd['Xmin']
+            Xmax  = cmd['Xmax']
+            Hmin  = cmd['Hmin']
+            Hmax  = cmd['Hmax']
+            XYrot  = cmd['XYrot'] * np.pi / 180.0
+            XTrot  = cmd['XTrot'] * np.pi / 180.0
+            XHrot  = cmd['XHrot'] * np.pi / 180.0
+            YTrot  = cmd['YTrot'] * np.pi / 180.0
+            YHrot  = cmd['YHrot'] * np.pi / 180.0
+            HTrot  = cmd['HTrot'] * np.pi / 180.0
+            
+            if record:
+                rgb_image = render_frame(time)
+                video_writer.write(rgb_image)
+            else:
+                render_frame(time)
+
+            pbar.update(1)  # Update progress bar
+
+    if record:
+        video_writer.release()
 
     
 
 # Dimensional parameters and their bounds
 parameterization = "HTYX"
-rot_XY = 0.0
-rot_XT = 0.0
-rot_XH = 0.0
-rot_YT = 0.0
-rot_YH = 0.0
-rot_HT = 0.0
+XYrot = 0.0
+XTrot = 0.0
+XHrot = 0.0
+YTrot = 0.0
+YHrot = 0.0
+HTrot = 0.0
 
-ymin, ymax = -1, 1
-xmin, xmax = -1, 1
-tmin, tmax = -1, 1
-hmin, hmax = -1, 1
+Ymin, Ymax = -1, 1
+Xmin, Xmax = -1, 1
+Tmin, Tmax = -1, 1
+Hmin, Hmax = -1, 1
 
-yRes, xRes, hRes = 300, 300, 24
-max_iter = 30
+Yres, Xres, Hres = 300, 300, 24
+prec = 30
 
 
 device = None
@@ -359,7 +393,7 @@ def main():
     tk.Label(root, text="prec").grid(row=0, column=4, padx=5, pady=5, sticky="e")
     prec_param = tk.Entry(root)
     prec_param.grid(row=0, column=5, padx=5, pady=5)
-    prec_param.insert(0, max_iter)  # Inserts initial values
+    prec_param.insert(0, prec)  # Inserts initial values
 
 
     for i, key in enumerate(fields.keys()):
@@ -373,15 +407,15 @@ def main():
         # Entry Fields
         min_entry = tk.Entry(root)
         min_entry.grid(row=i, column=1, padx=5, pady=5)
-        min_entry.insert(0, str(eval(f"{key.lower()}min")))  # Inserts initial values
+        min_entry.insert(0, str(eval(f"{key}min")))  # Inserts initial values
 
         max_entry = tk.Entry(root)
         max_entry.grid(row=i, column=3, padx=5, pady=5)
-        max_entry.insert(0, str(eval(f"{key.lower()}max")))
+        max_entry.insert(0, str(eval(f"{key}max")))
 
         res_entry = tk.Entry(root)
         res_entry.grid(row=i, column=5, padx=5, pady=5)
-        res_entry.insert(0, str(eval(f"{key.lower()}Res")))
+        res_entry.insert(0, str(eval(f"{key}res")))
 
         # Store in dictionary if needed later
         fields[key] = (min_entry, max_entry, res_entry)
@@ -404,7 +438,7 @@ def main():
 
     # Progress slider
     progress_slider = tk.Scale(
-        root, from_=0, to=tRes-1, orient="horizontal", length=400,
+        root, from_=0, to=Tres-1, orient="horizontal", length=400,
         command=set_frame, label="Animation Progress"
     )
     progress_slider.grid(row=6, column=0, columnspan=4, padx=5, pady=5)
@@ -414,42 +448,42 @@ def main():
     tk.Label(root, text="XY rotation:").grid(row=7, column=0, padx=5, sticky="e")
     rotation_slider = tk.Scale(
         root, from_=0, to=359, orient="horizontal", length=360,
-        command=set_rot_XY
+        command=set_XYrot
     )
     rotation_slider.grid(row=7, column=1, columnspan=3, padx=5, pady=5)
 
     tk.Label(root, text="XH rotation:").grid(row=8, column=0, padx=5, sticky="e")
     rotation_slider = tk.Scale(
         root, from_=0, to=359, orient="horizontal", length=360,
-        command=set_rot_XH
+        command=set_XHrot
     )
     rotation_slider.grid(row=8, column=1, columnspan=3, padx=5, pady=5)
 
     tk.Label(root, text="XT rotation:").grid(row=9, column=0, padx=5, sticky="e")
     rotation_slider = tk.Scale(
         root, from_=0, to=359, orient="horizontal", length=360,
-        command=set_rot_XT
+        command=set_XTrot
     )
     rotation_slider.grid(row=9, column=1, columnspan=3, padx=5, pady=5)
 
     tk.Label(root, text="YH rotation:").grid(row=10, column=0, padx=5, sticky="e")
     rotation_slider = tk.Scale(
         root, from_=0, to=359, orient="horizontal", length=360,
-        command=set_rot_YH
+        command=set_YHrot
     )
     rotation_slider.grid(row=10, column=1, columnspan=3, padx=5, pady=5)
 
     tk.Label(root, text="YT rotation:").grid(row=11, column=0, padx=5, sticky="e")
     rotation_slider = tk.Scale(
         root, from_=0, to=359, orient="horizontal", length=360,
-        command=set_rot_YT
+        command=set_YTrot
     )
     rotation_slider.grid(row=11, column=1, columnspan=3, padx=5, pady=5)
 
     tk.Label(root, text="HT rotation:").grid(row=12, column=0, padx=5, sticky="e")
     rotation_slider = tk.Scale(
         root, from_=0, to=359, orient="horizontal", length=360,
-        command=set_rot_HT
+        command=set_HTrot
     )
     rotation_slider.grid(row=12, column=1, columnspan=3, padx=5, pady=5)
 
