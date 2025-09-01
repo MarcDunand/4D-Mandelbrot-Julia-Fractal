@@ -1,5 +1,6 @@
 import torch
 import cv2
+import os
 from tqdm import tqdm  # For progress bar
 import numpy as np  # For array operations
 import psutil  # For checking system memory
@@ -10,6 +11,8 @@ import matplotlib.cm as cm  # For colormaps
 import tkinter as tk  # For UI
 import threading  # To run animation without freezing UI
 import time  # For delays and timing
+import ColorConverter  # Custom color selection script
+from joblib import Parallel, delayed  # To optimize generating LUT
 
 # Globals
 is_running = False   # True if animation is currently playing
@@ -19,11 +22,38 @@ animation_thread = None  # Holds the thread running the animation
 current_frame = 0    # Tracks current position in animation
 Tres = 30    # Total number of frames (time_steps)
 
+
+# Runs only once to generate lookup table for use on converting colors
+def get_lut(bits: int, device='cuda') -> torch.Tensor:
+    global _lut_cache
+    if bits in _lut_cache:
+        return _lut_cache[bits]
+
+    lut_path = f'lut_{bits}bit.pt'
+    if os.path.exists(lut_path):
+        print(f"Loading LUT from disk: {lut_path}")
+        lut = torch.load(lut_path, map_location=device)
+    else:
+        print(f"Generating LUT for {bits} bits... (this may take a few seconds)")
+        capacity = 1 << bits
+        lut = torch.empty(capacity, dtype=torch.int32)
+
+        for i in tqdm(range(capacity), desc="Building LUT", unit=" entry"):
+            lut[i] = ColorConverter.index_to_color(i, bits)
+
+        torch.save(lut.cpu(), lut_path)
+        print(f"LUT saved to: {lut_path}")
+        lut = lut.to(device)
+
+    _lut_cache[bits] = lut
+    return lut
+
+
 def generateFrame(parameterization, Ymin, Ymax, Xmin, Xmax, t, Hmin, Hmax, height=1000, width=1000, colorBits=24, prec=1000, device='cpu'):
     """
     Compute the Mandelbrot set using a 3D grid for full parallelization.
     """
-    global XYrot, XTrot, XHrot, YTrot, YHrot, HTrot
+    global XYrot, XTrot, XHrot, YTrot, YHrot, HTrot, lut
     
     rotational_planes = {"XY": XYrot, "XT": XTrot, "XH": XHrot, "YT": YTrot, "YH": YHrot, "HT": HTrot}
 
@@ -58,8 +88,6 @@ def generateFrame(parameterization, Ymin, Ymax, Xmin, Xmax, t, Hmin, Hmax, heigh
 
 
 
-
-
     z = grids[parameterization[0]] + 1j * grids[parameterization[1]]
     c = grids[parameterization[2]] + 1j * grids[parameterization[3]]
 
@@ -76,7 +104,8 @@ def generateFrame(parameterization, Ymin, Ymax, Xmin, Xmax, t, Hmin, Hmax, heigh
 
     weights = 2 ** torch.arange(colorBits, device=device, dtype=torch.int32)
     mandelbrot_image = torch.sum(mask.int() * weights, dim=-1)
-    return mandelbrot_image.cpu().numpy()
+    mandelbrot_recolored = lut[mandelbrot_image]
+    return mandelbrot_image.cpu().numpy(), mandelbrot_recolored.cpu().numpy()
 
 
 def render_frame(t = None):
@@ -84,13 +113,21 @@ def render_frame(t = None):
         t = Tmin+(Tmax-Tmin)*(current_frame/Tres)
     # t_values = torch.linspace(Tmin, Tmax, Tres, device=device)
     # t = t_values[current_frame]  # Get t-value based on slider position
-    colored = generateFrame(parameterization, Ymin, Ymax, Xmin, Xmax, t, Hmin, Hmax, Yres, Xres, Hres, prec, device)
+    rgb, lut = generateFrame(parameterization, Ymin, Ymax, Xmin, Xmax, t, Hmin, Hmax, Yres, Xres, Hres, prec, device)
+
     rgb_image = np.zeros((Yres, Xres, 3), dtype=np.uint8)
-    rgb_image[..., 2] = (colored >> 16) & 0xFF
-    rgb_image[..., 1] = (colored >> 8) & 0xFF
-    rgb_image[..., 0] = colored & 0xFF
+    rgb_image[..., 2] = (rgb >> 16) & 0xFF
+    rgb_image[..., 1] = (rgb >> 8) & 0xFF
+    rgb_image[..., 0] = rgb & 0xFF
+
+    lut_image = np.zeros((Yres, Xres, 3), dtype=np.uint8)
+    lut_image[..., 2] = (lut >> 16) & 0xFF
+    lut_image[..., 1] = (lut >> 8) & 0xFF
+    lut_image[..., 0] = lut & 0xFF
 
     cv2.imshow("Fractal Animation", rgb_image)
+
+    cv2.imshow("Fractal Animation_LUT", lut_image)
 
     cv2.waitKey(1)
 
@@ -352,6 +389,8 @@ Hmin, Hmax = -1, 1
 Yres, Xres, Hres = 300, 300, 24
 prec = 30
 
+_lut_cache = {}  #Full lookup table for any 24-bit color input
+
 
 device = None
 
@@ -370,7 +409,7 @@ progress_slider = None
 
 
 def main():
-    global device, fields, dimen_param, prec_param, progress_slider
+    global device, fields, dimen_param, prec_param, progress_slider, lut
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
@@ -379,10 +418,10 @@ def main():
     root = tk.Tk()
     root.title("Fractal Animation Controller")
 
+    # Generate color lookup table
+    lut = get_lut(24, device=device)  # 24 bits
+
     # Create a dictionary to store min/max/res labels and entry fields
-    
-
-
 
     tk.Label(root, text="(Zr + Zi)^2 + (Cr + Ci)").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="e")
     dimen_param = tk.Entry(root)
