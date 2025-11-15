@@ -289,7 +289,7 @@ def run_neighbor_swaps_torch(side, boid_of_voxel, pos_of_boid, fx, fy, fz,
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--side", type=int, default=256)
-    ap.add_argument("--feature-mode", type=str, default="rgb_bytes", choices=["rgb_bytes_generalized", "SPC"])
+    ap.add_argument("--feature-mode", type=str, default="rgb_bytes_generalized", choices=["rgb_bytes_generalized", "SPC"])
     ap.add_argument("--max-iters", type=int, default=6)
     ap.add_argument("--stop-ratio", type=float, default=0.0)
     ap.add_argument("--preview-csv", action="store_true")

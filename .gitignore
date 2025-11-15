@@ -1,3 +1,5 @@
 videoOutput
 debug.log
 coolOutputs
+*.pt
+*.npz

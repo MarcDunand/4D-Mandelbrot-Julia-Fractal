@@ -24,28 +24,65 @@ Tres = 30    # Total number of frames (time_steps)
 
 
 # Runs only once to generate lookup table for use on converting colors
-def get_lut(bits: int, device='cuda') -> torch.Tensor:
-    global _lut_cache
-    if bits in _lut_cache:
-        return _lut_cache[bits]
+# Runs only when a mapping is requested to generate a LUT
+def get_lut(bits: int, mapping_path: str, device='cuda') -> torch.Tensor:
+    """
+    Build or load a LUT from a mapping .npz.
 
-    lut_path = f'lut_{bits}bit.pt'
+    bits: number of bits (24)
+    mapping_path: path to .npz file with boid_to_rgb and side
+    """
+    global _lut_cache
+    key = (bits, mapping_path)
+
+    if key in _lut_cache:
+        return _lut_cache[key]
+
+    # LUT .pt path: same folder + basename as mapping, but .pt extension
+    base, _ = os.path.splitext(mapping_path)
+    lut_path = base + ".pt"
+
     if os.path.exists(lut_path):
         print(f"Loading LUT from disk: {lut_path}")
         lut = torch.load(lut_path, map_location=device)
     else:
-        print(f"Generating LUT for {bits} bits... (this may take a few seconds)")
-        capacity = 1 << bits
-        lut = torch.empty(capacity, dtype=torch.int32)
+        print(f"Generating LUT from mapping: {mapping_path}")
+        import numpy as np
 
-        for i in tqdm(range(capacity), desc="Building LUT", unit=" entry"):
-            lut[i] = ColorConverter.index_to_color(i, bits)
+        data = np.load(mapping_path, allow_pickle=True)
+        boid_to_rgb = data["boid_to_rgb"]  # shape (N,3)
+        side = int(data["side"])           # cube side
+        N = boid_to_rgb.shape[0]
+        capacity = 1 << bits
+
+        if N != capacity:
+            raise ValueError(
+                f"Mapping size N={N} does not match 2**bits={capacity} for bits={bits}"
+            )
+
+        x = boid_to_rgb[:, 0].astype(np.int64)
+        y = boid_to_rgb[:, 1].astype(np.int64)
+        z = boid_to_rgb[:, 2].astype(np.int64)
+
+        # Map voxel coords [0, side-1] to display bytes [0,255]
+        if side == 256:
+            R = x
+            G = y
+            B = z
+        else:
+            # general case
+            denom = max(1, side - 1)
+            R = (x * 255) // denom
+            G = (y * 255) // denom
+            B = (z * 255) // denom
+
+        lut_np = ((R << 16) | (G << 8) | B).astype(np.int32)
+        lut = torch.from_numpy(lut_np).to(device)
 
         torch.save(lut.cpu(), lut_path)
         print(f"LUT saved to: {lut_path}")
-        lut = lut.to(device)
 
-    _lut_cache[bits] = lut
+    _lut_cache[key] = lut
     return lut
 
 
@@ -104,34 +141,49 @@ def generateFrame(parameterization, Ymin, Ymax, Xmin, Xmax, t, Hmin, Hmax, heigh
 
     weights = 2 ** torch.arange(colorBits, device=device, dtype=torch.int32)
     mandelbrot_image = torch.sum(mask.int() * weights, dim=-1)
-    mandelbrot_recolored = lut[mandelbrot_image]
-    return mandelbrot_image.cpu().numpy(), mandelbrot_recolored.cpu().numpy()
+
+    # If we have a LUT (mapping mode), apply it; otherwise, just return raw indices
+    if lut is not None:
+        mandelbrot_recolored = lut[mandelbrot_image]
+        return mandelbrot_image.cpu().numpy(), mandelbrot_recolored.cpu().numpy()
+    else:
+        return mandelbrot_image.cpu().numpy(), None
 
 
-def render_frame(t = None):
-    if t == None:
-        t = Tmin+(Tmax-Tmin)*(current_frame/Tres)
-    # t_values = torch.linspace(Tmin, Tmax, Tres, device=device)
-    # t = t_values[current_frame]  # Get t-value based on slider position
-    rgb, lut = generateFrame(parameterization, Ymin, Ymax, Xmin, Xmax, t, Hmin, Hmax, Yres, Xres, Hres, prec, device)
+def render_frame(t=None):
+    if t is None:
+        t = Tmin + (Tmax - Tmin) * (current_frame / Tres)
 
+    index_img, lut_img = generateFrame(
+        parameterization, Ymin, Ymax, Xmin, Xmax, t,
+        Hmin, Hmax, Yres, Xres, Hres, prec, device
+    )
+
+    # Base image: interpret the 24-bit index as 0xRRGGBB
     rgb_image = np.zeros((Yres, Xres, 3), dtype=np.uint8)
-    rgb_image[..., 2] = (rgb >> 16) & 0xFF
-    rgb_image[..., 1] = (rgb >> 8) & 0xFF
-    rgb_image[..., 0] = rgb & 0xFF
-
-    lut_image = np.zeros((Yres, Xres, 3), dtype=np.uint8)
-    lut_image[..., 2] = (lut >> 16) & 0xFF
-    lut_image[..., 1] = (lut >> 8) & 0xFF
-    lut_image[..., 0] = lut & 0xFF
+    rgb_image[..., 2] = (index_img >> 16) & 0xFF
+    rgb_image[..., 1] = (index_img >> 8) & 0xFF
+    rgb_image[..., 0] = index_img & 0xFF
 
     cv2.imshow("Fractal Animation", rgb_image)
 
-    cv2.imshow("Fractal Animation_LUT", lut_image)
+    # Optional LUT image: only if mapping/LUT is active
+    if lut_img is not None:
+        lut_image = np.zeros((Yres, Xres, 3), dtype=np.uint8)
+        lut_image[..., 2] = (lut_img >> 16) & 0xFF
+        lut_image[..., 1] = (lut_img >> 8) & 0xFF
+        lut_image[..., 0] = lut_img & 0xFF
+        cv2.imshow("Fractal Animation_LUT", lut_image)
+    else:
+        # If we previously opened the LUT window in a prior run, close it
+        try:
+            cv2.destroyWindow("Fractal Animation_LUT")
+        except cv2.error:
+            pass
 
     cv2.waitKey(1)
-
     return rgb_image
+
 
 
 
@@ -286,26 +338,37 @@ def save_animation():
     video_filename = "./videoOutput/fractal_animation.mp4"
     fps = 30  # 30 frames per second
 
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     video_writer = cv2.VideoWriter(video_filename, fourcc, fps, (Xres, Yres))
     
     with tqdm(total=Tres, desc="Rendering animation") as pbar:
         for frame_idx in range(Tres):
             global current_frame
-            current_frame = frame_idx  # Update current frame index
+            current_frame = frame_idx
             
             t = Tmin + (Tmax - Tmin) * (frame_idx / Tres)
-            colored = generateFrame(parameterization, Ymin, Ymax, Xmin, Xmax, t, Hmin, Hmax, Yres, Xres, Hres, prec, device)
-            
+            index_img, lut_img = generateFrame(
+                parameterization, Ymin, Ymax,
+                Xmin, Xmax, t, Hmin, Hmax,
+                Yres, Xres, Hres, prec, device
+            )
+
+            # Choose what to save: mapped image if available, otherwise base
+            if lut_img is not None:
+                img_vals = lut_img
+            else:
+                img_vals = index_img
+
             rgb_image = np.zeros((Yres, Xres, 3), dtype=np.uint8)
-            rgb_image[..., 2] = (colored >> 16) & 0xFF
-            rgb_image[..., 1] = (colored >> 8) & 0xFF
-            rgb_image[..., 0] = colored & 0xFF
+            rgb_image[..., 2] = (img_vals >> 16) & 0xFF
+            rgb_image[..., 1] = (img_vals >> 8) & 0xFF
+            rgb_image[..., 0] = img_vals & 0xFF
             
-            video_writer.write(rgb_image)  # Add frame to video
-            pbar.update(1)  # Update progress bar
+            video_writer.write(rgb_image)
+            pbar.update(1)
 
     video_writer.release()
+
 
 
 def generateFromCode(initParams, commands, record):
@@ -408,18 +471,21 @@ progress_slider = None
 
 
 
-def main():
+def main(mapping_path=None):
     global device, fields, dimen_param, prec_param, progress_slider, lut
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
 
+    # If a mapping is provided, build/load its LUT; otherwise, no LUT
+    if mapping_path is not None:
+        lut = get_lut(24, mapping_path=mapping_path, device=device)
+    else:
+        lut = None
+
     # UI setup
     root = tk.Tk()
     root.title("Fractal Animation Controller")
-
-    # Generate color lookup table
-    lut = get_lut(24, device=device)  # 24 bits
 
     # Create a dictionary to store min/max/res labels and entry fields
 
@@ -532,4 +598,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "--mapping",
+        type=str,
+        default=None,
+        help="Optional .npz mapping file. If provided, a corresponding .pt LUT is loaded/created and used."
+    )
+    args = ap.parse_args()
+    main(mapping_path=args.mapping)
