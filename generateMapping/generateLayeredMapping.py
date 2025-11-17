@@ -2,6 +2,8 @@ import argparse
 import math
 import numpy as np, json
 
+generate_csv = False
+
 def save_npz_from_mapping(mapping, side, output="25layermapping.npz"):
     """
     mapping: list/ndarray of shape (N,4) as [boid_id, x, y, z]
@@ -79,14 +81,20 @@ def main():
     N = side**3
     bitlen = math.ceil(math.log2(N))
 
-    layers = []
+    layers = []  
+    #Each element is an array of variable length. This array is the list of all 1D structures (binary ints)
+    #which have i 1s in that binary integer form, where i = the index of that sub-array within the 'layers'
+    #array. Each of these subarrays is filled with arrays of length 2. The first element of the subsubarray
+    #is an array of length 3 which contains the the r, g, and b values of a hex color. The second element of
+    #the subsubarray is the 1D structure associated with that RGB value. All such 1D arrays in the subarray
+    #all have the same number of 1s in binary int form, as described above.
     for i in range(bitlen+1):
         layers.append([])
 
     #sorts all numbers up to N by the number of 1s in its binary representation, this creates the layers
     for i in range(N):  #generally 0-24
         num1s = bin(i).count("1")
-        layers[num1s].append(i)
+        layers[num1s].append([i, []])
 
     mapping = []
     for n in range(0, 3*side):
@@ -105,13 +113,14 @@ def main():
     mIdx = 0
     for i in range(len(layers)):
         for j in range(len(layers[i])):
-            mapping[mIdx][0] = layers[i][j]
+            mapping[mIdx][0] = layers[i][j][0]
+            layers[i][j][1] = mapping[mIdx][1:4]
             mIdx+=1
 
-    print(mapping[len(mapping)-1])
+    print(layers[0:2])
 
-
-    save_npz_from_mapping(mapping, side)
+    if generate_csv:
+        save_npz_from_mapping(mapping, side)
         
         
 
