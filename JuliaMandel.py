@@ -12,6 +12,7 @@ import tkinter as tk  # For UI
 import threading  # To run animation without freezing UI
 import time  # For delays and timing
 import ColorConverter  # Custom color selection script
+import ColorInspector  # Custom UI box for viewing color dimension
 from joblib import Parallel, delayed  # To optimize generating LUT
 
 # Globals
@@ -165,7 +166,25 @@ def render_frame(t=None):
     rgb_image[..., 1] = (index_img >> 8) & 0xFF
     rgb_image[..., 0] = index_img & 0xFF
 
-    cv2.imshow("Fractal Animation", rgb_image)
+    # Cache for re-drawing overlay while paused
+    global last_index_img, last_rgb_frame
+    last_index_img = index_img
+    last_rgb_frame = rgb_image
+
+    # Make a copy for overlay so the returned image stays "clean"
+    frame = rgb_image.copy()
+
+    # Draw the hover dialog showing the color-dimension column
+    frame = ColorInspector.draw_overlay(frame, index_img, bits=Hres)
+
+    # Show the main frame with overlay
+    cv2.imshow("Fractal Animation", frame)
+
+    # Lazily attach mouse callback once the window actually exists
+    global inspector_initialized
+    if not inspector_initialized:
+        ColorInspector.init("Fractal Animation")
+        inspector_initialized = True
 
     # Optional LUT image: only if mapping/LUT is active
     if lut_img is not None:
@@ -175,14 +194,32 @@ def render_frame(t=None):
         lut_image[..., 0] = lut_img & 0xFF
         cv2.imshow("Fractal Animation_LUT", lut_image)
     else:
-        # If we previously opened the LUT window in a prior run, close it
         try:
             cv2.destroyWindow("Fractal Animation_LUT")
         except cv2.error:
             pass
+    # For saving to video etc, we keep returning the raw RGB (no overlay)
 
-    cv2.waitKey(1)
     return rgb_image
+
+def refresh_overlay():
+    """
+    Re-draw the current overlay (hover box) on the last rendered frame
+    without recomputing the fractal.
+    """
+    global last_index_img, last_rgb_frame, inspector_initialized
+
+    if last_index_img is None or last_rgb_frame is None:
+        return
+
+    frame = last_rgb_frame.copy()
+    frame = ColorInspector.draw_overlay(frame, last_index_img, bits=Hres)
+    cv2.imshow("Fractal Animation", frame)
+
+    # Make sure the inspector is attached once the window exists
+    if not inspector_initialized:
+        ColorInspector.init("Fractal Animation")
+        inspector_initialized = True
 
 
 
@@ -194,30 +231,46 @@ def animation_loop():
     is_running = True
 
     while True:
-        # Stop if user presses "Stop"
         if not is_running:
             break
-        
+
         # Pause if user presses "pause" or at end of animation
-        #compare_frame = current_frame
         while (is_paused and (not needs_update)) or current_frame >= Tres:
-            cv2.waitKey(100)
-        
-        #Generates and shows the frame
+            # Repaint overlay on the last frame to keep hover dialogue box responsive
+            refresh_overlay()
+            
+            # Pump OpenCV events + allow overlay toggle even while paused
+            key = cv2.waitKey(30) & 0xFF
+            ColorInspector.handle_key(key)
+            if key == 27:  # ESC to stop animation
+                is_running = False
+                break
+
+        if not is_running:
+            break
+
+        # Generate and show the frame
         render_frame()
 
         needs_update = False
 
         # Update slider to reflect current frame
         progress_slider.set(current_frame)
-        
+
+        # Handle keyboard input once per frame
+        key = cv2.waitKey(1) & 0xFF
+        ColorInspector.handle_key(key)
+        if key == 27:  # ESC
+            is_running = False
+            break
+
         # Move forward one frame
         if not is_paused:
             current_frame += 1
 
-
     cv2.destroyAllWindows()
     is_running = False
+
 
 
 # Function to get values from entry fields before starting animation
@@ -456,6 +509,11 @@ _lut_cache = {}  #Full lookup table for any 24-bit color input
 
 
 device = None
+lut = None
+inspector_initialized = False
+
+last_index_img = None
+last_rgb_frame = None
 
 
 fields = {
