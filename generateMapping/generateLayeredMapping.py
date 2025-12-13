@@ -2,7 +2,7 @@ import argparse
 import math
 import numpy as np, json
 
-generate_csv = False
+generate_csv = True
 
 def save_npz_from_mapping(mapping, side, output="25layermapping.npz"):
     """
