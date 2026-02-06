@@ -38,8 +38,8 @@ of those navigations.
 Clone the repository and enter it:
 
 ``` powershell
-git clone <REPO_URL>
-cd <REPO_FOLDER>
+git clone https://github.com/MarcDunand/4D-Mandelbrot-Julia-Fractal
+cd 4D-Mandelbrot-Julia-Fractal
 ```
 
 Create and activate a virtual environment:
