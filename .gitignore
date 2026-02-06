@@ -3,3 +3,28 @@ debug.log
 coolOutputs
 *.pt
 *.npz
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Build / dist
+build/
+dist/
+*.egg-info/
+
+# Logs / temp
+*.log
+tmp/
+.temp/
