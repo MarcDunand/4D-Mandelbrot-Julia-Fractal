@@ -140,10 +140,3 @@ If dependency installation fails around `torch`, the issue is usually
 related to CUDA or wheel compatibility. Capture the full error output
 and resolve by selecting the appropriate PyTorch build (CPU-only or
 CUDA).
-
-------------------------------------------------------------------------
-
-## License
-
-Internal / research use. Add a license if external distribution is
-planned.
