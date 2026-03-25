@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>4D Visualization Comparison</title>
+        <style>
+            body{
+                font-family: Arial, sans-serif;
+                max-width: 900px;
+                margin: 40px auto;
+                padding: 0 20px;
+            }
+            iframe{
+                width: 100%;
+                height: 500px;
+            }
+            h2 {
+                margin-top: 80px;
+            }
+            h3 {
+                margin-top: 40px;
+            }
+            .visDemo {
+                margin-bottom: 80px;
+                padding-bottom: 20px;
+                border-bottom: 1px solid #ddd;
+            }
+            code {
+                font-size: inherit;
+            }
+        </style>
+    </head>
+
+
+    <body>
+        <h1>4D Visualization Comparison</h1>
+        <p>This page compares different ways of visualizing a given 4D object.</p>
+        
+        <h2>Tesseract Visualizations</h2>
+
+        <p>Tesseracts are the 4D-equivalent of cubes. These visualizations all represent a tesseract with edges in x, y, z, and w of length 1.</p>
+
+        <div class="visDemo">
+            <h3>XYZ Projection</h3>
+            <p>4D structure projected into 3D space</p>
+
+            <iframe src="https://www.math.union.edu/~dpvc/math/4D/models/x3d/HCube-Ortho-Corner.html"></iframe>
+            
+            <p>Controls: Click and drag on the visualization to rotate in 3D. Hold ALT and drag vertically to scale. Hold CTRL and drag to pan. Press r to reset. Icons to the right control face visibility.</p>
+            <p>
+                <a
+                    href="https://www.math.union.edu/~dpvc/math/4D/models/x3d/HCube-Ortho-Corner.html"
+                    target="_blank"
+                >
+                Open in new tab
+            </a>
+        </div>
+
+
+
+        <div class="visDemo">
+            <h3>XYZ+Slider</h3>
+            <p>3D slice visualizer with a slider to slice through fourth dimension</p>
+
+            <iframe src="https://www.desmos.com/3d/p3ij3hxh0k"></iframe>
+            
+            <p>Controls: Click and drag on the visualization to rotate in 3D. Drag w-axis slice to move 3D slice through 4D object. Use w<sub>x</sub>, w<sub>y</sub>, and w<sub>z</sub> to rotate in the WX, WY, and WZ planes respectively.</p>
+            <p>
+                <a
+                    href="https://www.desmos.com/3d/p3ij3hxh0k"
+                    target="_blank"
+                >
+                Open in new tab
+            </a>
+        </div>
+
+
+
+        <div class="visDemo">
+            <h3>XYZ+Time (XYZT)</h3>
+            <p>3D slice visualizer with the fourth dimension animated as a series of 3D slices</p>
+
+            <iframe src="https://www.desmos.com/3d/fwi8p8fb4p"></iframe>
+            
+            <p>Controls: Click and drag on the visualization to rotate in 3D. Change the speed of the animation by pressing on the bidirectional arrow symbol to the left of w<sub>0</sub> and adjusting the speed value.</p>
+            <img 
+                src="XYZTcontrols.png"
+                width=200px
+                style="border: 1px solid black;"
+            >
+
+            <p>
+                <a
+                    href="https://www.desmos.com/3d/fwi8p8fb4p"
+                    target="_blank"
+                    
+                >
+                Open in new tab
+            </a>
+        </div>
+
+
+
+        <div class="visDemo">
+            <h3>XY+Time+Color (XYTC)</h3>
+            <p>2D represented with the third dimension represented in color and the fourth dimension animated as a series of 3D slices</p>
+
+            <h4>Run in command line: <code>python XYTC.py --shape tesseract</code></h4>
+            
+            <h4>How to interpret visualization</h4>
+            <p>Similar to XYZ+slider XY+Time+Color is composed of a series of 3D slices which you move through using a slider. However, where XYZ+slider has each slice composed of an XY</p>
+
+            <p>Controls: TODO</p>
+        </div>
+    </body>
+
+</html>

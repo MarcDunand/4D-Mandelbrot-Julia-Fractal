@@ -115,7 +115,7 @@ def get_xyzt_coords(grids):
 
 
 
-def mandelbrot_julia_indicator(grids, parameterization, prec, device):
+def julia_mandelbrot_indicator(grids, parameterization, prec, device):
     """
     Original Julia/Mandelbrot-style indicator, now factored out as a pluggable
     indicator function.
@@ -142,7 +142,7 @@ def mandelbrot_julia_indicator(grids, parameterization, prec, device):
 
 def tesseract_indicator(grids, parameterization, prec, device):
     x, y, z, w = get_xyzt_coords(grids)
-    half_side = 5.0
+    half_side = 0.5
 
     return (
         (torch.abs(x) <= half_side)
@@ -153,22 +153,22 @@ def tesseract_indicator(grids, parameterization, prec, device):
 
 def hypersphere_indicator(grids, parameterization, prec, device):
     x, y, z, w = get_xyzt_coords(grids)
-    radius = 5.0
+    radius = 0.5
     radius_sq = radius * radius
 
     return (x * x + y * y + z * z + w * w) <= radius_sq
 
 def cross_polytope_indicator(grids, parameterization, prec, device):
     x, y, z, w = get_xyzt_coords(grids)
-    r = 5.0
+    r = 0.8
 
     return (torch.abs(x) + torch.abs(y) + torch.abs(z) + torch.abs(w)) <= r
 
 def torus_4d_indicator(grids, parameterization, prec, device):
     x, y, z, w = get_xyzt_coords(grids)
 
-    R = 5.0   # major radius
-    r = 1.5   # tube radius
+    R = 0.5   # major radius
+    r = 0.15   # tube radius
 
     r3 = torch.sqrt(x*x + y*y + z*z)
     return ((r3 - R)**2 + w*w) <= (r*r)
@@ -176,8 +176,8 @@ def torus_4d_indicator(grids, parameterization, prec, device):
 def shell_indicator(grids, parameterization, prec, device):
     x, y, z, w = get_xyzt_coords(grids)
 
-    r1 = 3.5
-    r2 = 5.0
+    r1 = 0.35
+    r2 = 0.5
 
     dist_sq = x*x + y*y + z*z + w*w
     return (dist_sq >= r1*r1) & (dist_sq <= r2*r2)
@@ -185,8 +185,8 @@ def shell_indicator(grids, parameterization, prec, device):
 def sphere_minus_cube_indicator(grids, parameterization, prec, device):
     x, y, z, w = get_xyzt_coords(grids)
 
-    sphere_r = 5.0
-    cube_half = 3.0
+    sphere_r = 0.5
+    cube_half = 0.3
 
     sphere = (x*x + y*y + z*z + w*w) <= (sphere_r * sphere_r)
 
@@ -222,7 +222,7 @@ def gyroid_4d_shell_indicator(grids, parameterization, prec, device):
 
 
 INDICATORS = {
-    "mandelbrot_julia": mandelbrot_julia_indicator,
+    "julia_mandelbrot": julia_mandelbrot_indicator,
     "tesseract": tesseract_indicator,
     "hypersphere": hypersphere_indicator,
     "4D_diamond" : cross_polytope_indicator,
@@ -239,11 +239,11 @@ def evaluate_indicator(grids, parameterization, prec, device):
     """
     Evaluate the currently selected indicator on the rotated 3D slice for this frame.
     """
-    indicator_fn = INDICATORS[indicator_name]
+    indicator_fn = INDICATORS[indicator]
     mask = indicator_fn(grids, parameterization, prec, device)
 
     if mask.dtype != torch.bool:
-        raise TypeError(f"Indicator '{indicator_name}' must return a boolean tensor.")
+        raise TypeError(f"Indicator '{indicator}' must return a boolean tensor.")
 
     return mask
 
@@ -663,7 +663,9 @@ def generateFromCode(initParams, commands, record):
 
 # Dimensional parameters and their bounds
 parameterization = "HTYX"
-indicator_name = "4D_gyroid_shell"
+
+indicator = None
+
 XYrot = 0.0
 XTrot = 0.0
 XHrot = 0.0
@@ -703,12 +705,15 @@ progress_slider = None
 
 
 
-def main(mapping_path=None):
-    global device, fields, dimen_param, prec_param, progress_slider, lut
+def main(mapping_path=None, indicator_arg="julia_mandelbrot"):
+    global device, fields, dimen_param, prec_param, progress_slider, lut, indicator
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
-    print("Active indicator:", indicator_name)
+    print("Active indicator:", indicator)
+
+    # Set the shape that will be visualized and live-calculated by XYTC
+    indicator=indicator_arg
 
     # If a mapping is provided, build/load its LUT; otherwise, no LUT
     if mapping_path is not None:
@@ -721,7 +726,7 @@ def main(mapping_path=None):
     root.title("Fractal Animation Controller")
 
     # Create a dictionary to store min/max/res labels and entry fields
-    tk.Label(root, text=f"indicator: {indicator_name}").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="e")
+    tk.Label(root, text=f"indicator: {indicator}").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="e")
     dimen_param = tk.Entry(root)
     dimen_param.grid(row=0, column=2, padx=5, pady=5)
     dimen_param.insert(0, parameterization)  # Inserts initial values
@@ -835,5 +840,11 @@ if __name__ == "__main__":
         default=None,
         help="Optional .npz mapping file. If provided, a corresponding .pt LUT is loaded/created and used."
     )
+    ap.add_argument(
+        "--shape",
+        type=str,
+        default="julia_mandelbrot",
+        help="Shape to be visualized. Preprogrammed options are: " + str(INDICATORS.keys())[10:-1]
+    )
     args = ap.parse_args()
-    main(mapping_path=args.mapping)
+    main(mapping_path=args.mapping, indicator_arg=args.shape)
