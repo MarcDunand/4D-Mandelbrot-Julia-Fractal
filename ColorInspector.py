@@ -10,7 +10,7 @@ WINDOW_NAME = "Fractal Animation"
 _hover_x = 0
 _hover_y = 0
 _hover_inside = False
-_overlay_enabled = False
+_overlay_enabled = True
 
 
 def init(window_name: str = "Fractal Animation") -> None:

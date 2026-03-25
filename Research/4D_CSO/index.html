@@ -41,15 +41,25 @@
         <p>Tesseracts are the 4D-equivalent of cubes. These visualizations all represent a tesseract with edges in x, y, z, and w of length 1.</p>
 
         <div class="visDemo">
-            <h3>XYZ Projection</h3>
+            <h3>XYZ</h3>
             <p>4D structure projected into 3D space</p>
 
-            <iframe src="https://www.math.union.edu/~dpvc/math/4D/models/x3d/HCube-Ortho-Corner.html"></iframe>
+            <iframe src="https://www.desmos.com/3d/vqjcebsx3x"></iframe>
+
+            <h4>How to interpret visualization</h4>
+            This visualization technique projects our 4D shape into 3D. We see 3D shapes projected into 2D all the time.
+            .
+            <img 
+                src="3d2dprojectionex.png"
+                width=400px
+                style="border: 1px solid black;"
+            >
             
-            <p>Controls: Click and drag on the visualization to rotate in 3D. Hold ALT and drag vertically to scale. Hold CTRL and drag to pan. Press r to reset. Icons to the right control face visibility.</p>
+            <h4>Controls</h4>
+            <p>Click and drag on the visualization to rotate in 3D. Use a<sub>x</sub>, a<sub>y</sub>, and a<sub>z</sub> to rotate in the WX, WY, and WZ planes respectively.</p>
             <p>
                 <a
-                    href="https://www.math.union.edu/~dpvc/math/4D/models/x3d/HCube-Ortho-Corner.html"
+                    href="https://www.desmos.com/3d/vqjcebsx3x"
                     target="_blank"
                 >
                 Open in new tab
@@ -63,8 +73,11 @@
             <p>3D slice visualizer with a slider to slice through fourth dimension</p>
 
             <iframe src="https://www.desmos.com/3d/p3ij3hxh0k"></iframe>
+
+            <h4>How to interpret visualization</h4>
             
-            <p>Controls: Click and drag on the visualization to rotate in 3D. Drag w-axis slice to move 3D slice through 4D object. Use w<sub>x</sub>, w<sub>y</sub>, and w<sub>z</sub> to rotate in the WX, WY, and WZ planes respectively.</p>
+            <h4>Controls</h4>
+            <p>Click and drag on the visualization to rotate in 3D. Drag w-axis slice to move 3D slice through 4D object. Use w<sub>x</sub>, w<sub>y</sub>, and w<sub>z</sub> to rotate in the WX, WY, and WZ planes respectively.</p>
             <p>
                 <a
                     href="https://www.desmos.com/3d/p3ij3hxh0k"
@@ -78,11 +91,14 @@
 
         <div class="visDemo">
             <h3>XYZ+Time (XYZT)</h3>
-            <p>3D slice visualizer with the fourth dimension animated as a series of 3D slices</p>
+            <p>3D slice visualizer with the fourth dimension reparameterized in time</p>
 
             <iframe src="https://www.desmos.com/3d/fwi8p8fb4p"></iframe>
+
+            <h4>How to interpret visualization</h4>
             
-            <p>Controls: Click and drag on the visualization to rotate in 3D. Change the speed of the animation by pressing on the bidirectional arrow symbol to the left of w<sub>0</sub> and adjusting the speed value.</p>
+            <h4>Controls</h4>
+            <p>Click and drag on the visualization to rotate in 3D. Change the speed of the animation by pressing on the bidirectional arrow symbol to the left of w<sub>0</sub> and adjusting the speed value.</p>
             <img 
                 src="XYZTcontrols.png"
                 width=200px
@@ -102,15 +118,66 @@
 
 
         <div class="visDemo">
-            <h3>XY+Time+Color (XYTC)</h3>
-            <p>2D represented with the third dimension represented in color and the fourth dimension animated as a series of 3D slices</p>
+            <h3>XY+Color+Time (XYCT)</h3>
+            <p>Two dimensions parameterized in space, with a third dimension represented in color, and a slider to slice through the fourth dimension.</p>
 
-            <h4>Run in command line: <code>python XYTC.py --shape tesseract</code></h4>
+            <div style="width: 100%; min-height: 500px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; font-size: 28px; border: 1px solid black">
+                Run in command line:
+                <code style="font-size: 1em; background: #cfcfcf; padding: 4px 8px; border-radius: 6px;">
+                    python XYCT.py --shape tesseract
+                </code>
+            </div>
             
             <h4>How to interpret visualization</h4>
-            <p>Similar to XYZ+slider XY+Time+Color is composed of a series of 3D slices which you move through using a slider. However, where XYZ+slider has each slice composed of an XY</p>
+            <p>
+                Similar to XYZ+slider, XY+Color+Time is composed of a series of 3D slices which you move through using a slider.
+                However, where XYZ+slider has each slice composed of a 3D shape made of three spacial dimensions (XYZ), 
+                XYCT has each slice composed of a 3D shape made of two spacial dimensions (XY) and one color dimension (C).
+            </p>
+            <p>
+                What does it mean for color to be a dimension? At a high level, we are creating a color code, where different colors
+                correspond to different structures. Look at the table below to see how 2D (XY) structures can be represented
+                perfectly in 1D+color (XC).
+            </p>
+            <img 
+                src="XYTC2dDemo.png"
+                width=80%
+                style="border: 1px solid black;"
+            >
+            <p>
+                This is the full logic of how a spatial dimension can be translated into a color dimension. Using the exact same method,
+                we can represent 3D (XYZ) structures as 2D+color (XYC).
+            </p>
+            <img 
+                src="XYTC3dDemo.png"
+                width=80%
+                style="border: 1px solid black;"
+            >
+            <p>
+            This is how each frame of XYCT is constructed, just with 24 different colored layers, rather than just the 3 RGB layers. Each frame of XYCT contains 3D information that has been translated from XYZ -> XYC.
+            Then, just like in XYZ+slider, as we move our slider over time, we can see all the 3D slices of the 4D object, giving us XY+color+time,
+            or XYCT
+            </p>
 
-            <p>Controls: TODO</p>
+            <h4>Controls</h4>
+            <p>Only focus on the seven controls highlighted here:</p>
+            <img
+                src="XYCTui.png"
+                width=60%
+                style="border: 1px solid black;"
+            >
+            <p>The first control, Time, works just like the slider in the XYZ+slider example: the slider slices through the 4th dimension of the shape.</p>
+            <p>
+                The remaining six controls correspond to the six possible planes of rotation that exist in 4D space. 
+            </p>
+            <p>
+                For example, the XY slider spins the visualization along the plane created by the X-dimension and the Y-dimension,
+                so rotating in XY by 90 degrees swaps the dimensions represented horizontally on the screen (X) and vertically on the screen (Y).
+            </p>
+            <p>
+                As another example, the YT slider spins the visualization along the plane created by the Y-dimension and the dimension parameterized in time,
+                so rotating in YT by 90 degrees swaps the dimensions represented vertically on the screen (Y) and represented by slicing across time (T).
+            </p>
         </div>
     </body>
 

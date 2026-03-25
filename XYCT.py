@@ -252,7 +252,7 @@ def evaluate_indicator(grids, parameterization, prec, device):
 # Frame generation
 # -----------------------------------------------------------------------------
 
-def generateFrame(parameterization, Ymin, Ymax, Xmin, Xmax, t, Hmin, Hmax, height=1000, width=1000, colorBits=24, prec=1000, device='cpu'):
+def generateFrame(parameterization, Ymin, Ymax, Xmin, Xmax, t, Cmin, Cmax, height=1000, width=1000, colorBits=24, prec=1000, device='cpu'):
     """
     Compute one XYTC frame by evaluating a 3D slice of a 4D indicator function.
 
@@ -280,7 +280,7 @@ def generateFrame(parameterization, Ymin, Ymax, Xmin, Xmax, t, Hmin, Hmax, heigh
     Ymin, Ymax = Ymax * -1, Ymin * -1  # needed flip on the y axis
     y_values = torch.linspace(Ymin, Ymax, height, device=device)
     x_values = torch.linspace(Xmin, Xmax, width, device=device)
-    h_values = torch.linspace(Hmin, Hmax, colorBits, device=device)
+    h_values = torch.linspace(Cmin, Cmax, colorBits, device=device)
 
     y_grid, x_grid, h_grid = torch.meshgrid(y_values, x_values, h_values, indexing="ij")
     t_grid = torch.full_like(x_grid, t)
@@ -320,7 +320,7 @@ def render_frame(t=None):
 
     index_img, lut_img = generateFrame(
         parameterization, Ymin, Ymax, Xmin, Xmax, t,
-        Hmin, Hmax, Yres, Xres, Hres, prec, device
+        Cmin, Cmax, Yres, Xres, Cres, prec, device
     )
 
     # Base image: interpret the 24-bit index as 0xRRGGBB
@@ -338,7 +338,7 @@ def render_frame(t=None):
     frame = rgb_image.copy()
 
     # Draw the hover dialog showing the color-dimension column
-    frame = ColorInspector.draw_overlay(frame, index_img, bits=Hres)
+    frame = ColorInspector.draw_overlay(frame, index_img, bits=Cres)
 
     # Show the main frame with overlay
     cv2.imshow("Fractal Animation", frame)
@@ -377,7 +377,7 @@ def refresh_overlay():
         return
 
     frame = last_rgb_frame.copy()
-    frame = ColorInspector.draw_overlay(frame, last_index_img, bits=Hres)
+    frame = ColorInspector.draw_overlay(frame, last_index_img, bits=Cres)
     cv2.imshow("Fractal Animation", frame)
 
     # Make sure the inspector is attached once the window exists
@@ -438,7 +438,7 @@ def animation_loop():
 # Function to get values from entry fields before starting animation
 def update_parameters():
     """Update global parameters from input fields before starting the animation."""
-    global current_frame, parameterization, Ymin, Ymax, Yres, Xmin, Xmax, Xres, Tmin, Tmax, Tres, Hmin, Hmax, Hres, prec
+    global current_frame, parameterization, Ymin, Ymax, Yres, Xmin, Xmax, Xres, Tmin, Tmax, Tres, Cmin, Cmax, Cres, prec
 
     try:
         TresOld = Tres
@@ -454,9 +454,9 @@ def update_parameters():
         Tmin = float(fields["T"][0].get())
         Tmax = float(fields["T"][1].get())
         Tres = int(fields["T"][2].get())
-        Hmin = float(fields["H"][0].get())
-        Hmax = float(fields["H"][1].get())
-        Hres = int(fields["H"][2].get())
+        Cmin = float(fields["C"][0].get())
+        Cmax = float(fields["C"][1].get())
+        Cres = int(fields["C"][2].get())
 
         prec = int(prec_param.get())
 
@@ -471,18 +471,11 @@ def update_parameters():
 
 
 def start_animation():
-    """Starts or resumes the animation in a separate thread."""
-    global animation_thread, is_paused, is_running
-
+    """Resumes the animation in a separate thread."""
+    global is_paused
     update_parameters()  # Get updated values from input fields
-
-    if is_running and is_paused:
+    if is_paused:
         is_paused = False
-    elif not is_running:
-        is_running = True
-        is_paused = False
-        animation_thread = threading.Thread(target=animation_loop, daemon=True)
-        animation_thread.start()
 
 
 
@@ -576,8 +569,8 @@ def save_animation():
             t = Tmin + (Tmax - Tmin) * (frame_idx / Tres)
             index_img, lut_img = generateFrame(
                 parameterization, Ymin, Ymax,
-                Xmin, Xmax, t, Hmin, Hmax,
-                Yres, Xres, Hres, prec, device
+                Xmin, Xmax, t, Cmin, Cmax,
+                Yres, Xres, Cres, prec, device
             )
 
             # Choose what to save: mapped image if available, otherwise base
@@ -599,7 +592,7 @@ def save_animation():
 
 
 def generateFromCode(initParams, commands, record):
-    global device, prec, parameterization, Ymin, Ymax, Yres, Xmin, Xmax, Xres, Hmin, Hmax, Hres, prec, XYrot, XTrot, XHrot, YTrot, YHrot, HTrot
+    global device, prec, parameterization, Ymin, Ymax, Yres, Xmin, Xmax, Xres, Cmin, Cmax, Cres, prec, XYrot, XTrot, XHrot, YTrot, YHrot, HTrot
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
@@ -608,15 +601,15 @@ def generateFromCode(initParams, commands, record):
     Yres = initParams['Yres']
     Xres = initParams['Xres']
 
-    Hres = int(initParams['Hres'])
+    Cres = int(initParams['Cres'])
     prec = int(initParams['prec'])
     time = initParams['time']
     Ymin = initParams['Ymin']
     Ymax = initParams['Ymax']
     Xmin = initParams['Xmin']
     Xmax = initParams['Xmax']
-    Hmin = initParams['Hmin']
-    Hmax = initParams['Hmax']
+    Cmin = initParams['Cmin']
+    Cmax = initParams['Cmax']
     XYrot = initParams['XYrot']
     XTrot = initParams['XTrot']
     XHrot = initParams['XHrot']
@@ -633,15 +626,15 @@ def generateFromCode(initParams, commands, record):
 
     with tqdm(total=len(commands), desc="Rendering animation") as pbar:
         for cmd in commands:
-            Hres = int(cmd['Hres'])
+            Cres = int(cmd['Cres'])
             prec = int(cmd['prec'])
             time = cmd['time']
             Ymin = cmd['Ymin']
             Ymax = cmd['Ymax']
             Xmin = cmd['Xmin']
             Xmax = cmd['Xmax']
-            Hmin = cmd['Hmin']
-            Hmax = cmd['Hmax']
+            Cmin = cmd['Cmin']
+            Cmax = cmd['Cmax']
             XYrot = cmd['XYrot'] * np.pi / 180.0
             XTrot = cmd['XTrot'] * np.pi / 180.0
             XHrot = cmd['XHrot'] * np.pi / 180.0
@@ -676,9 +669,9 @@ HTrot = 0.0
 Ymin, Ymax = -1, 1
 Xmin, Xmax = -1, 1
 Tmin, Tmax = -1, 1
-Hmin, Hmax = -1, 1
+Cmin, Cmax = -1, 1
 
-Yres, Xres, Hres = 300, 300, 24
+Yres, Xres, Cres = 500, 500, 24
 prec = 30
 
 _lut_cache = {}  # Full lookup table for any 24-bit color input
@@ -696,7 +689,7 @@ fields = {
     "Y": None,
     "X": None,
     "T": None,
-    "H": None
+    "C": None
 }
 
 dimen_param = None
@@ -780,7 +773,7 @@ def main(mapping_path=None, indicator_arg="julia_mandelbrot"):
     # Progress slider
     progress_slider = tk.Scale(
         root, from_=0, to=Tres - 1, orient="horizontal", length=400,
-        command=set_frame, label="Animation Progress"
+        command=set_frame, label="Time"
     )
     progress_slider.grid(row=6, column=0, columnspan=4, padx=5, pady=5)
 
@@ -792,7 +785,7 @@ def main(mapping_path=None, indicator_arg="julia_mandelbrot"):
     )
     rotation_slider.grid(row=7, column=1, columnspan=3, padx=5, pady=5)
 
-    tk.Label(root, text="XH rotation:").grid(row=8, column=0, padx=5, sticky="e")
+    tk.Label(root, text="XC rotation:").grid(row=8, column=0, padx=5, sticky="e")
     rotation_slider = tk.Scale(
         root, from_=0, to=359, orient="horizontal", length=360,
         command=set_XHrot
@@ -806,7 +799,7 @@ def main(mapping_path=None, indicator_arg="julia_mandelbrot"):
     )
     rotation_slider.grid(row=9, column=1, columnspan=3, padx=5, pady=5)
 
-    tk.Label(root, text="YH rotation:").grid(row=10, column=0, padx=5, sticky="e")
+    tk.Label(root, text="YC rotation:").grid(row=10, column=0, padx=5, sticky="e")
     rotation_slider = tk.Scale(
         root, from_=0, to=359, orient="horizontal", length=360,
         command=set_YHrot
@@ -820,13 +813,22 @@ def main(mapping_path=None, indicator_arg="julia_mandelbrot"):
     )
     rotation_slider.grid(row=11, column=1, columnspan=3, padx=5, pady=5)
 
-    tk.Label(root, text="HT rotation:").grid(row=12, column=0, padx=5, sticky="e")
+    tk.Label(root, text="CT rotation:").grid(row=12, column=0, padx=5, sticky="e")
     rotation_slider = tk.Scale(
         root, from_=0, to=359, orient="horizontal", length=360,
         command=set_HTrot
     )
     rotation_slider.grid(row=12, column=1, columnspan=3, padx=5, pady=5)
 
+    #start the animation frame
+    global animation_thread, is_paused, is_running
+
+    is_running = True
+    is_paused = False
+    animation_thread = threading.Thread(target=animation_loop, daemon=True)
+    animation_thread.start()
+    is_paused = True
+    
     # Start the Tkinter event loop
     root.mainloop()
 
