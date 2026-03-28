@@ -45,25 +45,32 @@
             <p>4D structure projected into 3D space</p>
 
             <iframe src="https://www.desmos.com/3d/vqjcebsx3x"></iframe>
+            <a
+                href="https://www.desmos.com/3d/vqjcebsx3x"
+                target="_blank"
+            >
+            Open in new tab
+            </a>
 
             <h4>How to interpret visualization</h4>
-            This visualization technique projects our 4D shape into 3D. We see 3D shapes projected into 2D all the time.
-            .
-            <img 
-                src="3d2dprojectionex.png"
-                width=400px
-                style="border: 1px solid black;"
-            >
+            <p>
+                This visualization technique projects our 4D shape into 3D space.
+                We see 3D shapes projected into 2D space all the time.
+                Any wireframe drawing of a cube on a sheet of paper is such a 3D->2D projection.
+            </p>
+            <figure>
+                <img 
+                    src="3d2dprojectionex.png"
+                    width=400px
+                    style="border: 1px solid black;"
+                >
+                <figcaption>3D cube projected as a 2D drawing</figcaption>
+            </figure>
+            <p>This visualization works in exactly the same way, except instead of projecting a 3D shape on a 2D surface we instead project a 4D shape into a 3D volume.</p>
+
             
             <h4>Controls</h4>
             <p>Click and drag on the visualization to rotate in 3D. Use a<sub>x</sub>, a<sub>y</sub>, and a<sub>z</sub> to rotate in the WX, WY, and WZ planes respectively.</p>
-            <p>
-                <a
-                    href="https://www.desmos.com/3d/vqjcebsx3x"
-                    target="_blank"
-                >
-                Open in new tab
-            </a>
         </div>
 
 
@@ -73,18 +80,30 @@
             <p>3D slice visualizer with a slider to slice through fourth dimension</p>
 
             <iframe src="https://www.desmos.com/3d/p3ij3hxh0k"></iframe>
+            <a
+                href="https://www.desmos.com/3d/p3ij3hxh0k"
+                target="_blank"
+            >
+            Open in new tab
+            </a>
 
             <h4>How to interpret visualization</h4>
+
+            <p>
+                A 3D object can be understood by slicing it into a sequence of 2D shapes.
+                For example, as a plane moves through a sphere, collect the 2D cross-sections of the sphere and the plane.
+                If you then look at all of these cross-sections in sequence, you can reconstruct the full 3D sphere from that series of slices.
+            </p>
+            <p>
+                A 4D object works the same way one dimension up.
+                Instead of getting 2D slices from a 3D object, we get a sequence of 3D slices from a 4D object.
+            </p>
+            <p>
+                In this visualization, you move the 3D slice through the 4D object by scrubbing the w<sub>0</sub> slider.
+            </p>
             
             <h4>Controls</h4>
             <p>Click and drag on the visualization to rotate in 3D. Drag w-axis slice to move 3D slice through 4D object. Use w<sub>x</sub>, w<sub>y</sub>, and w<sub>z</sub> to rotate in the WX, WY, and WZ planes respectively.</p>
-            <p>
-                <a
-                    href="https://www.desmos.com/3d/p3ij3hxh0k"
-                    target="_blank"
-                >
-                Open in new tab
-            </a>
         </div>
 
 
@@ -94,8 +113,17 @@
             <p>3D slice visualizer with the fourth dimension reparameterized in time</p>
 
             <iframe src="https://www.desmos.com/3d/fwi8p8fb4p"></iframe>
+            <a
+                href="https://www.desmos.com/3d/fwi8p8fb4p"
+                target="_blank"
+            >
+            Open in new tab
+            </a>
 
             <h4>How to interpret visualization</h4>
+            <p>
+                This works similarly to the previous visualization (XYZ+Slider), except the w-slider is automatically animated through time.
+            </p>
             
             <h4>Controls</h4>
             <p>Click and drag on the visualization to rotate in 3D. Change the speed of the animation by pressing on the bidirectional arrow symbol to the left of w<sub>0</sub> and adjusting the speed value.</p>
@@ -104,15 +132,6 @@
                 width=200px
                 style="border: 1px solid black;"
             >
-
-            <p>
-                <a
-                    href="https://www.desmos.com/3d/fwi8p8fb4p"
-                    target="_blank"
-                    
-                >
-                Open in new tab
-            </a>
         </div>
 
 
@@ -131,8 +150,8 @@
             <h4>How to interpret visualization</h4>
             <p>
                 Similar to XYZ+slider, XY+Color+Time is composed of a series of 3D slices which you move through using a slider.
-                However, where XYZ+slider has each slice composed of a 3D shape made of three spacial dimensions (XYZ), 
-                XYCT has each slice composed of a 3D shape made of two spacial dimensions (XY) and one color dimension (C).
+                However, where XYZ+slider has each slice composed of a 3D shape made of three spatial dimensions (XYZ), 
+                XYCT has each slice composed of a 3D shape made of two spatial dimensions (XY) and one color dimension (C).
             </p>
             <p>
                 What does it mean for color to be a dimension? At a high level, we are creating a color code, where different colors
