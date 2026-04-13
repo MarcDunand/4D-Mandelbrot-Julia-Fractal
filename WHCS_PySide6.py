@@ -9,10 +9,11 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from PySide6.QtCore import Qt, QTimer, QSize, Signal
+from PySide6.QtCore import Qt, QTimer, QSize, Signal, QPoint
 from PySide6.QtGui import QAction, QImage, QKeySequence, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
     QDoubleSpinBox,
     QFormLayout,
@@ -20,7 +21,6 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QMainWindow,
     QMessageBox,
     QPushButton,
@@ -163,9 +163,11 @@ INDICATORS = {
 # Data model and engine
 # -----------------------------------------------------------------------------
 
+DEFAULT_PARAMETERIZATION = "HTYX"
+
+
 @dataclass
 class ViewerState:
-    parameterization: str = "HTYX"
     indicator: str = "julia_mandelbrot"
 
     Ymin: float = -1.0
@@ -184,7 +186,8 @@ class ViewerState:
     Cmax: float = 1.0
     Cres: int = 24
 
-    prec: int = 30
+    precision: int = 30
+    snapping_enabled: bool = False
 
     XYrot: float = 0.0
     XTrot: float = 0.0
@@ -197,9 +200,9 @@ class ViewerState:
 
 
 class WHCTEngine:
-    def __init__(self, mapping_path: Optional[str], indicator_arg: str):
+    def __init__(self, mapping_path: Optional[str]):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.state = ViewerState(indicator=indicator_arg)
+        self.state = ViewerState()
         self.mapping_path = mapping_path
         self._lut_cache: Dict[Tuple[int, str], torch.Tensor] = {}
         self.lut: Optional[torch.Tensor] = None
@@ -257,8 +260,8 @@ class WHCTEngine:
         indicator_fn = INDICATORS[self.state.indicator]
         mask = indicator_fn(
             grids,
-            self.state.parameterization,
-            self.state.prec,
+            DEFAULT_PARAMETERIZATION,
+            self.state.precision,
             self.device,
         )
         if mask.dtype != torch.bool:
@@ -430,6 +433,8 @@ class HoverOverlay:
 
 class RenderViewport(QLabel):
     imagePositionChanged = Signal(object)  # None or (x, y)
+    dataPanRequested = Signal(float, float)  # dx, dy in display-pixel units
+    dataRotateRequested = Signal(float, float)  # dx, dy in display-pixel units
 
     def __init__(self, title: str, parent=None):
         super().__init__(parent)
@@ -442,6 +447,9 @@ class RenderViewport(QLabel):
         self._source_qimage: Optional[QImage] = None
         self._display_rect = None
         self._cached_pixmap: Optional[QPixmap] = None
+        self._is_right_dragging = False
+        self._is_left_dragging = False
+        self._last_drag_pos: Optional[QPoint] = None
 
     def set_numpy_bgr_image(self, image_bgr: Optional[np.ndarray]):
         if image_bgr is None:
@@ -497,12 +505,74 @@ class RenderViewport(QLabel):
         iy = max(0, min(ih - 1, iy))
         return ix, iy
 
+    def _is_inside_display_rect(self, pos: QPoint) -> bool:
+        if self._display_rect is None:
+            return False
+        x0, y0, dw, dh = self._display_rect
+        return x0 <= pos.x() < x0 + dw and y0 <= pos.y() < y0 + dh
+
+    def mousePressEvent(self, event):
+        point = event.position().toPoint()
+
+        if event.button() == Qt.LeftButton and self._is_inside_display_rect(point):
+            self._is_left_dragging = True
+            self._last_drag_pos = point
+            self.imagePositionChanged.emit(None)
+            self.setCursor(Qt.SizeAllCursor)
+            event.accept()
+            return
+
+        if event.button() == Qt.RightButton and self._is_inside_display_rect(point):
+            self._is_right_dragging = True
+            self._last_drag_pos = point
+            self.imagePositionChanged.emit(None)
+            self.setCursor(Qt.ClosedHandCursor)
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
     def mouseMoveEvent(self, event):
-        self.imagePositionChanged.emit(self._map_widget_to_image(event.position().toPoint()))
+        point = event.position().toPoint()
+        if self._is_left_dragging and self._last_drag_pos is not None:
+            delta = point - self._last_drag_pos
+            self._last_drag_pos = point
+            if delta.x() != 0 or delta.y() != 0:
+                self.dataRotateRequested.emit(float(delta.x()), float(delta.y()))
+            event.accept()
+            return
+
+        if self._is_right_dragging and self._last_drag_pos is not None:
+            delta = point - self._last_drag_pos
+            self._last_drag_pos = point
+            if delta.x() != 0 or delta.y() != 0:
+                self.dataPanRequested.emit(float(delta.x()), float(delta.y()))
+            event.accept()
+            return
+
+        self.imagePositionChanged.emit(self._map_widget_to_image(point))
         super().mouseMoveEvent(event)
 
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton and self._is_left_dragging:
+            self._is_left_dragging = False
+            self._last_drag_pos = None
+            self.unsetCursor()
+            self.imagePositionChanged.emit(self._map_widget_to_image(event.position().toPoint()))
+            event.accept()
+            return
+
+        if event.button() == Qt.RightButton and self._is_right_dragging:
+            self._is_right_dragging = False
+            self._last_drag_pos = None
+            self.unsetCursor()
+            self.imagePositionChanged.emit(self._map_widget_to_image(event.position().toPoint()))
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
     def leaveEvent(self, event):
-        self.imagePositionChanged.emit(None)
+        if not self._is_right_dragging and not self._is_left_dragging:
+            self.imagePositionChanged.emit(None)
         super().leaveEvent(event)
 
 
@@ -511,9 +581,9 @@ class RenderViewport(QLabel):
 # -----------------------------------------------------------------------------
 
 class WHCTMainWindow(QMainWindow):
-    def __init__(self, mapping_path: Optional[str], indicator_arg: str):
+    def __init__(self, mapping_path: Optional[str]):
         super().__init__()
-        self.engine = WHCTEngine(mapping_path, indicator_arg)
+        self.engine = WHCTEngine(mapping_path)
         self.overlay = HoverOverlay()
         self.is_paused = True
         self.is_rendering = False
@@ -560,7 +630,39 @@ class WHCTMainWindow(QMainWindow):
 
         self.viewport = RenderViewport("Visualization")
         self.viewport.imagePositionChanged.connect(self._on_hover_changed)
+        self.viewport.dataPanRequested.connect(self._on_viewport_pan)
+        self.viewport.dataRotateRequested.connect(self._on_viewport_rotate)
         right_layout.addWidget(self.viewport, stretch=1)
+
+        playback_panel = QWidget(self)
+        playback_layout = QVBoxLayout(playback_panel)
+        playback_layout.setContentsMargins(0, 0, 0, 0)
+        playback_layout.setSpacing(6)
+
+        self.progress_slider = QSlider(Qt.Horizontal)
+        self.progress_slider.valueChanged.connect(self.set_frame)
+        playback_layout.addWidget(self.progress_slider)
+
+        controls_row = QWidget()
+        controls_row_layout = QHBoxLayout(controls_row)
+        controls_row_layout.setContentsMargins(0, 0, 0, 0)
+        controls_row_layout.setSpacing(8)
+
+        self.pause_button = QPushButton("Pause")
+        self.play_button = QPushButton("Play")
+        self.update_button = QPushButton("Update")
+        self.save_button = QPushButton("Save Animation")
+
+        self.pause_button.clicked.connect(self.pause_animation)
+        self.play_button.clicked.connect(self.start_animation)
+        self.update_button.clicked.connect(self.update_animation)
+        self.save_button.clicked.connect(self.save_animation)
+
+        for button in (self.pause_button, self.play_button, self.update_button, self.save_button):
+            controls_row_layout.addWidget(button)
+
+        playback_layout.addWidget(controls_row)
+        right_layout.addWidget(playback_panel, stretch=0)
 
         self.lut_group = QGroupBox("LUT Preview")
         lut_layout = QVBoxLayout(self.lut_group)
@@ -578,16 +680,10 @@ class WHCTMainWindow(QMainWindow):
         viewer_group = QGroupBox("Viewer")
         viewer_layout = QFormLayout(viewer_group)
 
-        self.indicator_label = QLabel(self.engine.state.indicator)
-        viewer_layout.addRow("indicator", self.indicator_label)
-
-        self.parameterization_edit = QLineEdit()
-        viewer_layout.addRow("parameterization (T,Y,X,H)", self.parameterization_edit)
-
-        self.prec_spin = QSpinBox()
-        self.prec_spin.setRange(1, 100000)
-        self.prec_spin.setValue(30)
-        viewer_layout.addRow("prec", self.prec_spin)
+        self.indicator_combo = QComboBox()
+        self.indicator_combo.addItems(list(INDICATORS.keys()))
+        self.indicator_combo.currentIndexChanged.connect(self._on_indicator_changed)
+        viewer_layout.addRow("indicator", self.indicator_combo)
 
         controls_layout.addWidget(viewer_group)
 
@@ -620,34 +716,6 @@ class WHCTMainWindow(QMainWindow):
 
         controls_layout.addWidget(dim_group)
 
-        # Action buttons
-        button_row = QWidget()
-        button_layout = QHBoxLayout(button_row)
-        button_layout.setContentsMargins(0, 0, 0, 0)
-
-        self.pause_button = QPushButton("Pause")
-        self.play_button = QPushButton("Play")
-        self.update_button = QPushButton("Update")
-        self.save_button = QPushButton("Save Animation")
-
-        self.pause_button.clicked.connect(self.pause_animation)
-        self.play_button.clicked.connect(self.start_animation)
-        self.update_button.clicked.connect(self.update_animation)
-        self.save_button.clicked.connect(self.save_animation)
-
-        for button in (self.pause_button, self.play_button, self.update_button, self.save_button):
-            button_layout.addWidget(button)
-
-        controls_layout.addWidget(button_row)
-
-        # Timeline
-        timeline_group = QGroupBox("Timeline")
-        timeline_layout = QVBoxLayout(timeline_group)
-        self.progress_slider = QSlider(Qt.Horizontal)
-        self.progress_slider.valueChanged.connect(self.set_frame)
-        timeline_layout.addWidget(self.progress_slider)
-        controls_layout.addWidget(timeline_group)
-
         # Rotation sliders
         rot_group = QGroupBox("Rotations (degrees)")
         rot_layout = QGridLayout(rot_group)
@@ -669,6 +737,19 @@ class WHCTMainWindow(QMainWindow):
             rot_layout.addWidget(slider, row, 1)
         controls_layout.addWidget(rot_group)
 
+        settings_group = QGroupBox("Settings")
+        settings_layout = QFormLayout(settings_group)
+
+        self.precision_spin = QSpinBox()
+        self.precision_spin.setRange(1, 100000)
+        self.precision_spin.setValue(30)
+        settings_layout.addRow("precision", self.precision_spin)
+
+        self.snapping_checkbox = QCheckBox()
+        settings_layout.addRow("snap rotations", self.snapping_checkbox)
+
+        controls_layout.addWidget(settings_group)
+
         controls_layout.addStretch(1)
 
         self.setStatusBar(QStatusBar(self))
@@ -680,8 +761,14 @@ class WHCTMainWindow(QMainWindow):
 
     def _load_state_into_ui(self):
         s = self.engine.state
-        self.parameterization_edit.setText(s.parameterization)
-        self.prec_spin.setValue(s.prec)
+        self.indicator_combo.blockSignals(True)
+        index = self.indicator_combo.findText(s.indicator)
+        if index >= 0:
+            self.indicator_combo.setCurrentIndex(index)
+        self.indicator_combo.blockSignals(False)
+
+        self.precision_spin.setValue(s.precision)
+        self.snapping_checkbox.setChecked(s.snapping_enabled)
 
         for key in ["Y", "X", "T", "C"]:
             min_spin, max_spin, res_spin = self.dimension_controls[key]
@@ -704,12 +791,9 @@ class WHCTMainWindow(QMainWindow):
         s = self.engine.state
         old_tres = s.Tres
 
-        parameterization = self.parameterization_edit.text().strip()
-        if len(parameterization) != 4 or any(ch not in "TYXH" for ch in parameterization):
-            raise ValueError("parameterization must be a 4-character string using only T, Y, X, and H.")
-
-        s.parameterization = parameterization
-        s.prec = self.prec_spin.value()
+        s.indicator = self.indicator_combo.currentText()
+        s.precision = self.precision_spin.value()
+        s.snapping_enabled = self.snapping_checkbox.isChecked()
 
         for key in ["Y", "X", "T", "C"]:
             min_spin, max_spin, res_spin = self.dimension_controls[key]
@@ -726,10 +810,38 @@ class WHCTMainWindow(QMainWindow):
             self.progress_slider.setValue(s.current_frame)
             self.progress_slider.blockSignals(False)
 
+    def _snap_angle_rad(self, angle_rad: float) -> float:
+        s = self.engine.state
+        if not s.snapping_enabled:
+            return angle_rad
+        angle_deg = np.degrees(angle_rad)
+        snapped_deg = round(angle_deg / 15.0) * 15.0
+        if abs(angle_deg - snapped_deg) <= 7.5:
+            return np.deg2rad(snapped_deg)
+        return angle_rad
+
+    def _apply_snapping_to_all_rotations(self):
+        for attr in ("XYrot", "XTrot", "XHrot", "YTrot", "YHrot", "HTrot"):
+            snapped = self._snap_angle_rad(getattr(self.engine.state, attr))
+            setattr(self.engine.state, attr, snapped)
+
+        for attr, slider in self.rotation_sliders.items():
+            slider_value = int(round(np.degrees(getattr(self.engine.state, attr)))) % 360
+            slider.blockSignals(True)
+            slider.setValue(slider_value)
+            slider.blockSignals(False)
+
     def _set_rotation(self, attr: str, value: int):
         setattr(self.engine.state, attr, float(value) * np.pi / 180.0)
+        self._apply_snapping_to_all_rotations()
         if self.is_paused:
             self._render_and_show()
+
+    def _on_indicator_changed(self):
+        self.engine.state.indicator = self.indicator_combo.currentText()
+        if self.is_paused:
+            self._render_and_show()
+        self._update_status()
 
     # ---------- Rendering ----------
     def _render_and_show(self):
@@ -759,6 +871,66 @@ class WHCTMainWindow(QMainWindow):
     def _on_hover_changed(self, pos):
         self.overlay.set_hover(pos)
         self._rerender_overlay_only()
+
+    def _on_viewport_pan(self, dx_pixels: float, dy_pixels: float):
+        if self.viewport._display_rect is None:
+            return
+
+        try:
+            self._apply_ui_to_state()
+        except Exception:
+            return
+
+        if not self.is_paused:
+            self.pause_animation()
+
+        _, _, display_width, display_height = self.viewport._display_rect
+        if display_width <= 0 or display_height <= 0:
+            return
+
+        s = self.engine.state
+        x_span = s.Xmax - s.Xmin
+        y_span = s.Ymax - s.Ymin
+
+        dx_data = -(dx_pixels / display_width) * x_span
+        dy_data = (dy_pixels / display_height) * y_span
+
+        s.Xmin += dx_data
+        s.Xmax += dx_data
+        s.Ymin += dy_data
+        s.Ymax += dy_data
+
+        x_min_spin, x_max_spin, _ = self.dimension_controls["X"]
+        y_min_spin, y_max_spin, _ = self.dimension_controls["Y"]
+
+        for spin, value in (
+            (x_min_spin, s.Xmin),
+            (x_max_spin, s.Xmax),
+            (y_min_spin, s.Ymin),
+            (y_max_spin, s.Ymax),
+        ):
+            spin.blockSignals(True)
+            spin.setValue(value)
+            spin.blockSignals(False)
+
+        self._render_and_show()
+
+    def _on_viewport_rotate(self, dx_pixels: float, dy_pixels: float):
+        try:
+            self._apply_ui_to_state()
+        except Exception:
+            return
+
+        if not self.is_paused:
+            self.pause_animation()
+
+        degrees_per_pixel = 0.5
+        s = self.engine.state
+        s.XHrot += np.deg2rad(dx_pixels * degrees_per_pixel)
+        s.YHrot += np.deg2rad(dy_pixels * degrees_per_pixel)
+
+        self._apply_snapping_to_all_rotations()
+        self._render_and_show()
 
     def toggle_overlay(self):
         self.overlay.toggle()
@@ -797,6 +969,7 @@ class WHCTMainWindow(QMainWindow):
         self.is_paused = True
         self.animation_timer.stop()
         self._render_and_show()
+        self._update_status()
 
     def _advance_animation(self):
         if self.is_paused:
@@ -858,14 +1031,9 @@ class WHCTMainWindow(QMainWindow):
 
 
 
-def main(mapping_path: Optional[str] = None, indicator_arg: str = "julia_mandelbrot"):
-    if indicator_arg not in INDICATORS:
-        raise ValueError(
-            f"Unknown shape '{indicator_arg}'. Valid options are: {', '.join(INDICATORS.keys())}"
-        )
-
+def main(mapping_path: Optional[str] = None):
     app = QApplication(sys.argv)
-    window = WHCTMainWindow(mapping_path, indicator_arg)
+    window = WHCTMainWindow(mapping_path)
     window.show()
     sys.exit(app.exec())
 
@@ -878,11 +1046,5 @@ if __name__ == "__main__":
         default=None,
         help="Optional .npz mapping file. If provided, a corresponding .pt LUT is loaded/created and used.",
     )
-    ap.add_argument(
-        "--shape",
-        type=str,
-        default="julia_mandelbrot",
-        help="Shape to be visualized. Preprogrammed options are: " + ", ".join(INDICATORS.keys()),
-    )
     args = ap.parse_args()
-    main(mapping_path=args.mapping, indicator_arg=args.shape)
+    main(mapping_path=args.mapping)
