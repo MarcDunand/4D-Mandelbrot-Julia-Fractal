@@ -595,6 +595,11 @@ class WHCTMainWindow(QMainWindow):
         self.animation_timer.setInterval(1)
         self.animation_timer.timeout.connect(self._advance_animation)
 
+        self.live_update_timer = QTimer(self)
+        self.live_update_timer.setSingleShot(True)
+        self.live_update_timer.setInterval(100)
+        self.live_update_timer.timeout.connect(self._commit_live_ui_update)
+
         self._build_ui()
         self._load_state_into_ui()
         self._render_and_show()
@@ -703,11 +708,16 @@ class WHCTMainWindow(QMainWindow):
             res_spin = QSpinBox()
             res_spin.setRange(1, 100000)
             res_spin.setValue(1)
+            res_spin.setKeyboardTracking(False)
 
             for spin in (min_spin, max_spin):
                 spin.setRange(-1_000_000.0, 1_000_000.0)
                 spin.setDecimals(6)
                 spin.setSingleStep(0.1)
+                spin.setKeyboardTracking(False)
+
+            for spin in (min_spin, max_spin, res_spin):
+                spin.valueChanged.connect(self._schedule_live_ui_update)
 
             self.dimension_controls[key] = (min_spin, max_spin, res_spin)
             dim_grid.addWidget(min_spin, row, 1)
@@ -743,9 +753,12 @@ class WHCTMainWindow(QMainWindow):
         self.precision_spin = QSpinBox()
         self.precision_spin.setRange(1, 100000)
         self.precision_spin.setValue(30)
+        self.precision_spin.setKeyboardTracking(False)
+        self.precision_spin.valueChanged.connect(self._schedule_live_ui_update)
         settings_layout.addRow("precision", self.precision_spin)
 
         self.snapping_checkbox = QCheckBox()
+        self.snapping_checkbox.stateChanged.connect(self._on_snapping_changed)
         settings_layout.addRow("snap rotations", self.snapping_checkbox)
 
         controls_layout.addWidget(settings_group)
@@ -809,6 +822,29 @@ class WHCTMainWindow(QMainWindow):
             self.progress_slider.setRange(0, max(0, s.Tres - 1))
             self.progress_slider.setValue(s.current_frame)
             self.progress_slider.blockSignals(False)
+
+    def _schedule_live_ui_update(self, *args):
+        self.live_update_timer.start()
+
+    def _commit_live_ui_update(self):
+        try:
+            self._apply_ui_to_state()
+        except Exception as exc:
+            QMessageBox.critical(self, "Invalid input", str(exc))
+            return
+
+        if self.is_paused:
+            self._render_and_show()
+        else:
+            self._update_status()
+
+    def _on_snapping_changed(self):
+        self.engine.state.snapping_enabled = self.snapping_checkbox.isChecked()
+        self._apply_snapping_to_all_rotations()
+        if self.is_paused:
+            self._render_and_show()
+        else:
+            self._update_status()
 
     def _snap_angle_rad(self, angle_rad: float) -> float:
         s = self.engine.state
@@ -960,6 +996,7 @@ class WHCTMainWindow(QMainWindow):
         self._update_status()
 
     def update_animation(self):
+        self.live_update_timer.stop()
         try:
             self._apply_ui_to_state()
         except Exception as exc:
@@ -972,6 +1009,14 @@ class WHCTMainWindow(QMainWindow):
         self._update_status()
 
     def _advance_animation(self):
+        self.live_update_timer.stop()
+        try:
+            self._apply_ui_to_state()
+        except Exception as exc:
+            self.pause_animation()
+            QMessageBox.critical(self, "Invalid input", str(exc))
+            return
+
         if self.is_paused:
             return
 
