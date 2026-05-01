@@ -1,0 +1,46 @@
+<svg width="1200" height="160" viewBox="0 0 1200 160" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text { font-family: Arial, sans-serif; font-size: 22px; text-anchor: middle; }
+    line { stroke: black; stroke-width: 2; }
+  </style>
+
+  <defs>
+    <marker id="arrow-right" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="black"></path>
+    </marker>
+    <marker id="arrow-left" markerWidth="10" markerHeight="10" refX="1" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M 10 0 L 0 5 L 10 10 z" fill="black"></path>
+    </marker>
+  </defs>
+
+  <!-- main number line with arrows showing continuation -->
+  <line x1="35" y1="70" x2="1165" y2="70" marker-start="url(#arrow-left)" marker-end="url(#arrow-right)"></line>
+
+  <!-- ticks and labels: -11 to 12, 24 total ticks -->
+  <g>
+    <line x1="60.0000" y1="55" x2="60.0000" y2="85"></line><text x="60.0000" y="120">-11</text>
+    <line x1="106.9565" y1="55" x2="106.9565" y2="85"></line><text x="106.9565" y="120">-10</text>
+    <line x1="153.9130" y1="55" x2="153.9130" y2="85"></line><text x="153.9130" y="120">-9</text>
+    <line x1="200.8696" y1="55" x2="200.8696" y2="85"></line><text x="200.8696" y="120">-8</text>
+    <line x1="247.8261" y1="55" x2="247.8261" y2="85"></line><text x="247.8261" y="120">-7</text>
+    <line x1="294.7826" y1="55" x2="294.7826" y2="85"></line><text x="294.7826" y="120">-6</text>
+    <line x1="341.7391" y1="55" x2="341.7391" y2="85"></line><text x="341.7391" y="120">-5</text>
+    <line x1="388.6957" y1="55" x2="388.6957" y2="85"></line><text x="388.6957" y="120">-4</text>
+    <line x1="435.6522" y1="55" x2="435.6522" y2="85"></line><text x="435.6522" y="120">-3</text>
+    <line x1="482.6087" y1="55" x2="482.6087" y2="85"></line><text x="482.6087" y="120">-2</text>
+    <line x1="529.5652" y1="55" x2="529.5652" y2="85"></line><text x="529.5652" y="120">-1</text>
+    <line x1="576.5217" y1="55" x2="576.5217" y2="85"></line><text x="576.5217" y="120">0</text>
+    <line x1="623.4783" y1="55" x2="623.4783" y2="85"></line><text x="623.4783" y="120">1</text>
+    <line x1="670.4348" y1="55" x2="670.4348" y2="85"></line><text x="670.4348" y="120">2</text>
+    <line x1="717.3913" y1="55" x2="717.3913" y2="85"></line><text x="717.3913" y="120">3</text>
+    <line x1="764.3478" y1="55" x2="764.3478" y2="85"></line><text x="764.3478" y="120">4</text>
+    <line x1="811.3043" y1="55" x2="811.3043" y2="85"></line><text x="811.3043" y="120">5</text>
+    <line x1="858.2609" y1="55" x2="858.2609" y2="85"></line><text x="858.2609" y="120">6</text>
+    <line x1="905.2174" y1="55" x2="905.2174" y2="85"></line><text x="905.2174" y="120">7</text>
+    <line x1="952.1739" y1="55" x2="952.1739" y2="85"></line><text x="952.1739" y="120">8</text>
+    <line x1="999.1304" y1="55" x2="999.1304" y2="85"></line><text x="999.1304" y="120">9</text>
+    <line x1="1046.0870" y1="55" x2="1046.0870" y2="85"></line><text x="1046.0870" y="120">10</text>
+    <line x1="1093.0435" y1="55" x2="1093.0435" y2="85"></line><text x="1093.0435" y="120">11</text>
+    <line x1="1140.0000" y1="55" x2="1140.0000" y2="85"></line><text x="1140.0000" y="120">12</text>
+  </g>
+</svg>
