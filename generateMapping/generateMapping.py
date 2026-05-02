@@ -49,6 +49,16 @@ def compute_features(boid_ids: np.ndarray, side: int, mode: str = "SPC"):
       - "rgb_bytes_generalized":
                 Split the bitstring into 3 contiguous chunks (LSB→MSB)
                 as evenly as possible; use each chunk's integer value.
+
+    Direct mapping modes:
+      - "centered_bgr":
+                Directly permutes the 24 input bits into 0xRRGGBB.
+                C bits 0..7   -> B bits low-to-high:  1, 2, 4, 8, 16, 32, 64, 128
+                C bits 8..15  -> G bits centered:     1, 4, 16, 64, 128, 32, 8, 2
+                C bits 16..23 -> R bits high-to-low: 128, 64, 32, 16, 8, 4, 2, 1
+
+                This mode is selected with --feature-mode, but is handled
+                directly in main() rather than by compute_features().
     """
     assert side >= 2
     N = int(side)**3
@@ -141,6 +151,88 @@ def compute_features(boid_ids: np.ndarray, side: int, mode: str = "SPC"):
         raise ValueError(f"Unknown feature mode: {mode}")
 
 
+
+def centered_bgr_direct_mapping(side: int):
+    """
+    Direct 24-bit bit-permutation mapping.
+
+    The 24 input bits are interpreted left-to-right across the color dimension as:
+
+      bits 0..7    -> blue byte,  low-to-high:  1, 2, 4, 8, 16, 32, 64, 128
+      bits 8..15   -> green byte, centered:     1, 4, 16, 64, 128, 32, 8, 2
+      bits 16..23  -> red byte,   high-to-low: 128, 64, 32, 16, 8, 4, 2, 1
+
+    Output is still stored as boid_to_rgb[i] = (R, G, B).
+    """
+
+    if side != 256:
+        raise ValueError(
+            "centered_bgr is an exact 24-bit 0xRRGGBB bit permutation "
+            "and currently requires --side 256."
+        )
+
+    N = side**3
+    boid_ids = np.arange(N, dtype=np.uint32)
+
+    r = np.zeros(N, dtype=np.uint32)
+    g = np.zeros(N, dtype=np.uint32)
+    b = np.zeros(N, dtype=np.uint32)
+
+    # Each entry says: source bit index -> output channel bit weight.
+    bit_layout = [
+        # Blue: low -> high
+        ("b", 1),
+        ("b", 2),
+        ("b", 4),
+        ("b", 8),
+        ("b", 16),
+        ("b", 32),
+        ("b", 64),
+        ("b", 128),
+
+        # Green: low/outside -> high/center -> low/outside
+        ("g", 1),
+        ("g", 4),
+        ("g", 16),
+        ("g", 64),
+        ("g", 128),
+        ("g", 32),
+        ("g", 8),
+        ("g", 2),
+
+        # Red: high -> low
+        ("r", 128),
+        ("r", 64),
+        ("r", 32),
+        ("r", 16),
+        ("r", 8),
+        ("r", 4),
+        ("r", 2),
+        ("r", 1),
+    ]
+
+    for src_bit, (channel, weight) in enumerate(bit_layout):
+        bit_is_on = ((boid_ids >> src_bit) & 1).astype(np.uint32)
+
+        if channel == "r":
+            r |= bit_is_on * weight
+        elif channel == "g":
+            g |= bit_is_on * weight
+        elif channel == "b":
+            b |= bit_is_on * weight
+        else:
+            raise ValueError(f"Unknown channel: {channel}")
+
+    boid_to_rgb = np.empty((N, 3), dtype=np.uint16)
+    boid_to_rgb[:, 0] = r.astype(np.uint16)
+    boid_to_rgb[:, 1] = g.astype(np.uint16)
+    boid_to_rgb[:, 2] = b.astype(np.uint16)
+
+    rgb_to_boid = np.empty(N, dtype=np.uint32)
+    idx = (r + side * (g + side * b)).astype(np.uint64)
+    rgb_to_boid[idx] = boid_ids
+
+    return boid_to_rgb, rgb_to_boid
 
 # --------------------------------------------------------------------------------------
 # ---------------------- 3-pass monotone transport (CPU, O(N)) ------------------------
@@ -289,7 +381,12 @@ def run_neighbor_swaps_torch(side, boid_of_voxel, pos_of_boid, fx, fy, fz,
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--side", type=int, default=256)
-    ap.add_argument("--feature-mode", type=str, default="rgb_bytes_generalized", choices=["rgb_bytes_generalized", "SPC"])
+    ap.add_argument(
+        "--feature-mode",
+        type=str,
+        default="rgb_bytes_generalized",
+        choices=["rgb_bytes_generalized", "SPC", "centered_bgr"],
+    )
     ap.add_argument("--max-iters", type=int, default=6)
     ap.add_argument("--stop-ratio", type=float, default=0.0)
     ap.add_argument("--preview-csv", action="store_true")
@@ -301,38 +398,54 @@ def main():
     print(f"Generating mapping for side={side} N={N}")
 
     # Features
-    boid_ids = np.arange(N, dtype=np.uint32)
-    fx, fy, fz = compute_features(boid_ids, side, args.feature_mode)
+    if args.feature_mode == "centered_bgr":
+        print("Using direct centered_bgr bit-permutation mapping.")
+        boid_to_rgb, rgb_to_boid = centered_bgr_direct_mapping(side)
 
-    # 3-pass monotone transport
-    _, _, _, rgb_to_boid, pos_of_boid = three_pass_monotone_transport(fx, fy, fz, side)
-
-    # Build boid_to_rgb
-    boid_to_rgb = np.empty((N,3),dtype=np.uint16)
-    boid_to_rgb[:,0] = (pos_of_boid & 0xFF).astype(np.uint16)
-    boid_to_rgb[:,1] = ((pos_of_boid>>8)&0xFF).astype(np.uint16)
-    boid_to_rgb[:,2] = ((pos_of_boid>>16)&0xFF).astype(np.uint16)
-
-    # Move to torch for swaps
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Using device:",device)
-    boid_of_voxel = torch.from_numpy(rgb_to_boid.astype(np.int64)).to(device)
-    pos_of_boid_t = torch.from_numpy(pos_of_boid.astype(np.int64)).to(device)
-    fx_t = torch.from_numpy(fx.astype(np.int64)).to(device)
-    fy_t = torch.from_numpy(fy.astype(np.int64)).to(device)
-    fz_t = torch.from_numpy(fz.astype(np.int64)).to(device)
-
-    if args.max_iters>0 and device.type=="cuda":
-        run_neighbor_swaps_torch(side, boid_of_voxel, pos_of_boid_t, fx_t, fy_t, fz_t,
-                                 max_iters=args.max_iters, stop_ratio=args.stop_ratio, verbose=True)
-        # Copy back
-        rgb_to_boid = boid_of_voxel.cpu().numpy().astype(np.uint32)
-        pos_of_boid = pos_of_boid_t.cpu().numpy().astype(np.uint32)
-        boid_to_rgb[:,0] = (pos_of_boid & 0xFF).astype(np.uint16)
-        boid_to_rgb[:,1] = ((pos_of_boid>>8)&0xFF).astype(np.uint16)
-        boid_to_rgb[:,2] = ((pos_of_boid>>16)&0xFF).astype(np.uint16)
     else:
-        print("Skipping swap passes (CPU or max-iters=0).")
+        # Features
+        boid_ids = np.arange(N, dtype=np.uint32)
+        fx, fy, fz = compute_features(boid_ids, side, args.feature_mode)
+
+        # 3-pass monotone transport
+        _, _, _, rgb_to_boid, pos_of_boid = three_pass_monotone_transport(fx, fy, fz, side)
+
+        # Build boid_to_rgb
+        boid_to_rgb = np.empty((N, 3), dtype=np.uint16)
+        boid_to_rgb[:, 0] = (pos_of_boid & 0xFF).astype(np.uint16)
+        boid_to_rgb[:, 1] = ((pos_of_boid >> 8) & 0xFF).astype(np.uint16)
+        boid_to_rgb[:, 2] = ((pos_of_boid >> 16) & 0xFF).astype(np.uint16)
+
+        # Move to torch for swaps
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print("Using device:", device)
+        boid_of_voxel = torch.from_numpy(rgb_to_boid.astype(np.int64)).to(device)
+        pos_of_boid_t = torch.from_numpy(pos_of_boid.astype(np.int64)).to(device)
+        fx_t = torch.from_numpy(fx.astype(np.int64)).to(device)
+        fy_t = torch.from_numpy(fy.astype(np.int64)).to(device)
+        fz_t = torch.from_numpy(fz.astype(np.int64)).to(device)
+
+        if args.max_iters > 0 and device.type == "cuda":
+            run_neighbor_swaps_torch(
+                side,
+                boid_of_voxel,
+                pos_of_boid_t,
+                fx_t,
+                fy_t,
+                fz_t,
+                max_iters=args.max_iters,
+                stop_ratio=args.stop_ratio,
+                verbose=True,
+            )
+
+            # Copy back
+            rgb_to_boid = boid_of_voxel.cpu().numpy().astype(np.uint32)
+            pos_of_boid = pos_of_boid_t.cpu().numpy().astype(np.uint32)
+            boid_to_rgb[:, 0] = (pos_of_boid & 0xFF).astype(np.uint16)
+            boid_to_rgb[:, 1] = ((pos_of_boid >> 8) & 0xFF).astype(np.uint16)
+            boid_to_rgb[:, 2] = ((pos_of_boid >> 16) & 0xFF).astype(np.uint16)
+        else:
+            print("Skipping swap passes (CPU or max-iters=0).")
 
     # Save mapping
     meta = {"side": side, "N": int(N), "feature_mode": args.feature_mode,
