@@ -1,86 +1,206 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-generateMapping.py (PyTorch version)
+generateMapping.py
 
-Builds a bijective mapping from all boids (bitstrings) to an S×S×S RGB lattice
-using:
-  1) 3-pass monotone transport (stable quota fills along X -> Y -> Z), then
-  2) PyTorch CUDA neighbor compare-and-swap sweeps (odd-even on x, y, z).
+This file creates the color mapping files used by the WHCT / XYTC viewer.
 
-USAGE (examples):
-  python generateMapping.py --side 8 --max-iters 4
-  python generateMapping.py --side 256 --max-iters 6 --stop-ratio 1e-7
+The viewer can pack the color dimension into a 24-bit integer. This script decides
+how each one of those 24-bit values should become an actual RGB color. In other
+words, it builds a bijective mapping between:
 
-OUTPUT:
-  - mapping.npz
-      * boid_to_rgb: (N,3) uint16 -> assigned RGB = (x',y',z')
-      * rgb_to_boid: (N,) uint32  -> inverse map; index = x + S*(y + S*z)
-      * side:        scalar int
-      * meta:        dict-like metadata (as JSON string)
-  - mapping_preview.csv (optional if N<=1e6)
+    boid_id / 24-bit color-dimension pattern  <->  (R, G, B) coordinate
 
-Notes:
-  - Replace `compute_features(...)` with your own 24-bit feature extractor.
-  - Neighbor swap passes are O(N) per iteration and bandwidth-bound.
+The saved .npz file contains:
+
+    boid_to_rgb:  shape (N, 3)
+                  boid_to_rgb[i] = the RGB coordinate assigned to boid/value i
+
+    rgb_to_boid:  shape (N,)
+                  rgb_to_boid[linear(R, G, B)] = the boid/value at that RGB voxel
+
+    side:         the side length of the RGB cube
+                  For the normal 24-bit case, side=256 and N=256^3=2^24.
+
+    meta:         a small JSON string describing how the mapping was generated
+
+Mapping modes
+-------------
+There are two types of mapping modes in this file.
+
+1. Feature / transport modes
+
+   These first describe each 24-bit value using three features, then arrange the
+   values into the RGB cube using monotone transport and optional CUDA neighbor
+   swaps.
+
+   - rgb_bytes_generalized
+       Splits the bitstring into 3 chunks and uses those chunks as the starting
+       feature values.
+
+   - SPC
+       Uses popcount, average position of the 1s, and transition count.
+
+2. Direct mapping modes
+
+   These directly construct boid_to_rgb and rgb_to_boid. They do not go through
+   the feature / transport pipeline, because that would change the exact mapping
+   they are trying to preserve.
+
+   - centered_bgr
+       A direct bit permutation. The left side of the color-dimension bits maps
+       toward blue, the middle maps toward green, and the right side maps toward
+       red.
+
+   - layered_popcount
+       The old generateLayeredMapping.py behavior. Values are grouped by how many
+       1s they have in binary, then assigned through diagonal RGB layers where
+       R + G + B increases.
+
+Usage examples
+--------------
+    python generateMapping.py --mapping-mode rgb_bytes_generalized --output mapping.npz
+    python generateMapping.py --mapping-mode SPC --max-iters 6 --output spc_mapping.npz
+    python generateMapping.py --mapping-mode centered_bgr --output centered_bgr_mapping.npz
+    python generateMapping.py --mapping-mode layered_popcount --output layered_popcount_mapping.npz
+
+The old --feature-mode flag is still accepted as an alias for --mapping-mode, but
+--mapping-mode is the clearer name now because not every mode is feature-based.
 """
 
-import argparse, os, sys, time, json
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import time
+from typing import Iterator, Tuple
+
 import numpy as np
 import torch
-from numba import njit  # still used for the CPU counting sort
+from numba import njit  # Used for the CPU counting sort in the transport modes.
+
+
+TRANSPORT_MAPPING_MODES = ("rgb_bytes_generalized", "SPC")
+DIRECT_MAPPING_MODES = ("centered_bgr", "layered_popcount")
+MAPPING_MODES = TRANSPORT_MAPPING_MODES + DIRECT_MAPPING_MODES
+
 
 # --------------------------------------------------------------------------------------
-# --------------------------- Feature computation (EDIT ME) ----------------------------
+# -------------------------------- Shared save helpers ---------------------------------
 # --------------------------------------------------------------------------------------
 
-import math
-import numpy as np
-
-def compute_features(boid_ids: np.ndarray, side: int, mode: str = "SPC"):
+def save_mapping_npz(
+    output: str,
+    boid_to_rgb: np.ndarray,
+    rgb_to_boid: np.ndarray,
+    side: int,
+    mapping_mode: str,
+    description: str,
+) -> None:
     """
-    Return (fx, fy, fz) in [0, side-1], automatically adapting the bit-width
-    to the cube size. We assume N = side**3 boids, so bitlen = ceil(log2(N)).
+    Save a mapping in the format expected by the WHCT / XYTC viewer.
+
+    boid_to_rgb and rgb_to_boid should already be built and validated by the
+    mapping function. This function just does one final shape check and writes
+    the compressed .npz file.
+    """
+    n_expected = int(side) ** 3
+
+    if boid_to_rgb.shape != (n_expected, 3):
+        raise ValueError(
+            f"boid_to_rgb should have shape {(n_expected, 3)}, got {boid_to_rgb.shape}"
+        )
+    if rgb_to_boid.shape != (n_expected,):
+        raise ValueError(
+            f"rgb_to_boid should have shape {(n_expected,)}, got {rgb_to_boid.shape}"
+        )
+
+    meta = {
+        "side": int(side),
+        "N": int(n_expected),
+        "mapping_mode": mapping_mode,
+        # Kept for compatibility with older mapping files / notes that used this name.
+        "feature_mode": mapping_mode,
+        "description": description,
+    }
+
+    np.savez_compressed(
+        output,
+        boid_to_rgb=boid_to_rgb.astype(np.uint16, copy=False),
+        rgb_to_boid=rgb_to_boid.astype(np.uint32, copy=False),
+        side=np.array(side, dtype=np.int32),
+        meta=np.array(json.dumps(meta), dtype=object),
+    )
+    print("Saved", output)
+
+
+def write_preview_csv(output: str, boid_to_rgb: np.ndarray) -> None:
+    """
+    Write a small CSV preview of the mapping.
+
+    This is intentionally optional because a full side=256 mapping has 16,777,216
+    rows, which is not a fun CSV to open or move around.
+    """
+    csv_path = os.path.splitext(output)[0] + "_preview.csv"
+    with open(csv_path, "w", encoding="utf-8") as f:
+        f.write("boid_id,R,G,B\n")
+        for boid_id, (r, g, b) in enumerate(boid_to_rgb):
+            f.write(f"{boid_id},{int(r)},{int(g)},{int(b)}\n")
+    print("Saved", csv_path)
+
+
+# --------------------------------------------------------------------------------------
+# --------------------------- Feature computation modes --------------------------------
+# --------------------------------------------------------------------------------------
+
+def compute_features(
+    boid_ids: np.ndarray,
+    side: int,
+    mode: str = "SPC",
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Return (fx, fy, fz) in [0, side-1] for the feature / transport modes.
+
+    These features are not final colors. They are only the starting description
+    that the transport pipeline uses to arrange values into the RGB cube.
 
     Modes:
       - "SPC":  fx = popcount
                 fy = average position of 1s   (0..bitlen-1; LSB=0)
                 fz = transitions count        (0..bitlen-1)
+
       - "rgb_bytes_generalized":
-                Split the bitstring into 3 contiguous chunks (LSB→MSB)
-                as evenly as possible; use each chunk's integer value.
-
-    Direct mapping modes:
-      - "centered_bgr":
-                Directly permutes the 24 input bits into 0xRRGGBB.
-                C bits 0..7   -> B bits low-to-high:  1, 2, 4, 8, 16, 32, 64, 128
-                C bits 8..15  -> G bits centered:     1, 4, 16, 64, 128, 32, 8, 2
-                C bits 16..23 -> R bits high-to-low: 128, 64, 32, 16, 8, 4, 2, 1
-
-                This mode is selected with --feature-mode, but is handled
-                directly in main() rather than by compute_features().
+                Split the bitstring into 3 contiguous chunks (LSB -> MSB)
+                as evenly as possible, then use each chunk's integer value.
     """
+    if mode not in TRANSPORT_MAPPING_MODES:
+        raise ValueError(
+            f"{mode!r} is not a feature / transport mode. "
+            f"Choose one of {TRANSPORT_MAPPING_MODES}."
+        )
+
     assert side >= 2
-    N = int(side)**3
-    # Number of bits needed to represent boid IDs in [0..N-1]
-    bitlen = math.ceil(math.log2(N))
-    # Safety: cap at 64 to stay in uint64 math; N never exceeds 256^3 so we’re fine
+    n = int(side) ** 3
+    bitlen = math.ceil(math.log2(n))
     assert bitlen <= 64, "bitlen too large for uint64 path"
 
     x = boid_ids.astype(np.uint64) & ((1 << bitlen) - 1)
 
-    def to_side_scale(byte0_255: np.ndarray) -> np.ndarray:
-        # Map [0,255] -> [0, side-1] by floor(val * side / 256)
-        return (byte0_255.astype(np.uint32) * side // 256).astype(np.uint16)
+    def to_side_scale(values_0_255: np.ndarray) -> np.ndarray:
+        # Map [0, 255] -> [0, side - 1] by floor(value * side / 256).
+        return (values_0_255.astype(np.uint32) * side // 256).astype(np.uint16)
 
     if mode == "rgb_bytes_generalized":
-        # Split bitlen as evenly as possible into 3 chunks (sizes s1, s2, s3).
+        # Split bitlen into three chunks as evenly as possible.
+        # The first chunk gets the least significant bits.
         base = bitlen // 3
-        rem  = bitlen % 3
-        s1 = base + (1 if rem > 0 else 0)
-        s2 = base + (1 if rem > 1 else 0)
+        remainder = bitlen % 3
+        s1 = base + (1 if remainder > 0 else 0)
+        s2 = base + (1 if remainder > 1 else 0)
         s3 = base
-        # Note: LSB chunk first
+
         if s1 > 0:
             m1 = (1 << s1) - 1
             c1 = (x >> 0) & m1
@@ -105,56 +225,61 @@ def compute_features(boid_ids: np.ndarray, side: int, mode: str = "SPC"):
             c3 = np.zeros_like(x)
             c3max = 1
 
-        # Scale each chunk to [0,255] using its own max
-        def to_byte(vals, vmax):
-            # vmax can be 0 if s* = 0; guard to avoid divide-by-zero
+        def to_byte(values: np.ndarray, vmax: int) -> np.ndarray:
             vmax = int(vmax)
             if vmax <= 0:
-                return np.zeros_like(vals, dtype=np.uint16)
-            return np.floor(vals.astype(np.float64) * (255.0 / vmax) + 0.5).astype(np.uint16)
+                return np.zeros_like(values, dtype=np.uint16)
+            return np.floor(values.astype(np.float64) * (255.0 / vmax) + 0.5).astype(
+                np.uint16
+            )
 
         fx_raw = to_byte(c1, c1max)
         fy_raw = to_byte(c2, c2max)
         fz_raw = to_byte(c3, c3max)
-
         return to_side_scale(fx_raw), to_side_scale(fy_raw), to_side_scale(fz_raw)
 
-    elif mode == "SPC":
-        # Build (N, bitlen) bit matrix, LSB-first: bit position 0..bitlen-1
+    if mode == "SPC":
+        # Build a bit matrix, LSB first: bit position 0..bitlen-1.
         positions = np.arange(bitlen, dtype=np.uint64)
         bits = ((x[:, None] >> positions[None, :]) & 1).astype(np.uint8)
 
-        # S: popcount (0..bitlen)
-        pop = bits.sum(axis=1).astype(np.float64)  # float for later division
+        # S: popcount.
+        pop = bits.sum(axis=1).astype(np.float64)
 
-        # P: average position of 1s (0..bitlen-1); if pop==0 -> 0
-        weighted_sum = (bits * positions.astype(np.uint64)[None, :]).sum(axis=1).astype(np.float64)
-        avgpos = np.where(pop > 0.0, weighted_sum / pop, 0.0)  # 0..bitlen-1
+        # P: average position of 1s. If there are no 1s, use 0.
+        weighted_sum = (bits * positions[None, :]).sum(axis=1).astype(np.float64)
+        avgpos = np.where(pop > 0.0, weighted_sum / pop, 0.0)
 
-        # C: transitions across adjacent bits (there are bitlen-1 boundaries)
+        # C: count transitions between neighboring bits.
         if bitlen > 1:
-            trans = (bits[:, 1:] != bits[:, :-1]).sum(axis=1).astype(np.float64)  # 0..bitlen-1
+            trans = (bits[:, 1:] != bits[:, :-1]).sum(axis=1).astype(np.float64)
         else:
             trans = np.zeros_like(pop, dtype=np.float64)
 
-        # Scale each raw feature to [0,255] using the true max for that feature
-        # pop max = bitlen
-        fx_raw = np.floor(pop   * (255.0 / max(1, bitlen))       + 0.5).astype(np.uint16)
-        # avgpos max = bitlen-1 (if bitlen==1, max=0 -> always 0)
-        fy_raw = np.floor(avgpos * (255.0 / max(1, bitlen - 1))  + 0.5).astype(np.uint16)
-        # trans max = bitlen-1 (if bitlen==1, max=0 -> always 0)
-        fz_raw = np.floor(trans * (255.0 / max(1, bitlen - 1))   + 0.5).astype(np.uint16)
-
+        fx_raw = np.floor(pop * (255.0 / max(1, bitlen)) + 0.5).astype(np.uint16)
+        fy_raw = np.floor(avgpos * (255.0 / max(1, bitlen - 1)) + 0.5).astype(
+            np.uint16
+        )
+        fz_raw = np.floor(trans * (255.0 / max(1, bitlen - 1)) + 0.5).astype(
+            np.uint16
+        )
         return to_side_scale(fx_raw), to_side_scale(fy_raw), to_side_scale(fz_raw)
 
-    else:
-        raise ValueError(f"Unknown feature mode: {mode}")
+    # This should be unreachable because of the earlier mode check.
+    raise ValueError(f"Unknown feature mode: {mode}")
 
 
+# --------------------------------------------------------------------------------------
+# ------------------------------- Direct mapping modes ---------------------------------
+# --------------------------------------------------------------------------------------
 
-def centered_bgr_direct_mapping(side: int):
+def centered_bgr_direct_mapping(side: int) -> Tuple[np.ndarray, np.ndarray]:
     """
     Direct 24-bit bit-permutation mapping.
+
+    This keeps the mapping extremely literal: each bit in the 24-bit input still
+    becomes one bit in the final 24-bit color. The only thing that changes is
+    which output color bit it controls.
 
     The 24 input bits are interpreted left-to-right across the color dimension as:
 
@@ -162,23 +287,22 @@ def centered_bgr_direct_mapping(side: int):
       bits 8..15   -> green byte, centered:     1, 4, 16, 64, 128, 32, 8, 2
       bits 16..23  -> red byte,   high-to-low: 128, 64, 32, 16, 8, 4, 2, 1
 
-    Output is still stored as boid_to_rgb[i] = (R, G, B).
+    Output is stored as boid_to_rgb[i] = (R, G, B).
     """
-
     if side != 256:
         raise ValueError(
             "centered_bgr is an exact 24-bit 0xRRGGBB bit permutation "
             "and currently requires --side 256."
         )
 
-    N = side**3
-    boid_ids = np.arange(N, dtype=np.uint32)
+    n = side ** 3
+    boid_ids = np.arange(n, dtype=np.uint32)
 
-    r = np.zeros(N, dtype=np.uint32)
-    g = np.zeros(N, dtype=np.uint32)
-    b = np.zeros(N, dtype=np.uint32)
+    r = np.zeros(n, dtype=np.uint32)
+    g = np.zeros(n, dtype=np.uint32)
+    b = np.zeros(n, dtype=np.uint32)
 
-    # Each entry says: source bit index -> output channel bit weight.
+    # Each list entry says: source bit index -> output channel bit weight.
     bit_layout = [
         # Blue: low -> high
         ("b", 1),
@@ -189,7 +313,6 @@ def centered_bgr_direct_mapping(side: int):
         ("b", 32),
         ("b", 64),
         ("b", 128),
-
         # Green: low/outside -> high/center -> low/outside
         ("g", 1),
         ("g", 4),
@@ -199,7 +322,6 @@ def centered_bgr_direct_mapping(side: int):
         ("g", 32),
         ("g", 8),
         ("g", 2),
-
         # Red: high -> low
         ("r", 128),
         ("r", 64),
@@ -223,67 +345,194 @@ def centered_bgr_direct_mapping(side: int):
         else:
             raise ValueError(f"Unknown channel: {channel}")
 
-    boid_to_rgb = np.empty((N, 3), dtype=np.uint16)
+    boid_to_rgb = np.empty((n, 3), dtype=np.uint16)
     boid_to_rgb[:, 0] = r.astype(np.uint16)
     boid_to_rgb[:, 1] = g.astype(np.uint16)
     boid_to_rgb[:, 2] = b.astype(np.uint16)
 
-    rgb_to_boid = np.empty(N, dtype=np.uint32)
-    idx = (r + side * (g + side * b)).astype(np.uint64)
-    rgb_to_boid[idx] = boid_ids
+    rgb_to_boid = np.empty(n, dtype=np.uint32)
+    rgb_index = (r + side * (g + side * b)).astype(np.uint32)
+    rgb_to_boid[rgb_index] = boid_ids
 
     return boid_to_rgb, rgb_to_boid
+
+
+def _iter_diagonal_rgb_coords(side: int) -> Iterator[Tuple[int, int, int]]:
+    """
+    Yield every RGB cube coordinate in diagonal-layer order.
+
+    This is the coordinate ordering from the old generateLayeredMapping.py file:
+    first all coordinates where R+G+B is small, then the next diagonal layer, and
+    so on until the far corner of the cube.
+    """
+    max_sum = 3 * (side - 1)
+    for total in range(max_sum + 1):
+        for r in range(side):
+            g_min = max(0, total - r - (side - 1))
+            g_max = min(side - 1, total - r)
+
+            if g_min > g_max:
+                continue
+
+            for g in range(g_min, g_max + 1):
+                b = total - r - g
+                yield r, g, b
+
+
+def _iter_ints_by_popcount(n: int, bitlen: int) -> Iterator[int]:
+    """
+    Yield integers 0..n-1 grouped by popcount.
+
+    This matches the core idea of the old layered mapping: all values with 0 one
+    bits first, then all values with 1 one bit, then 2, etc. Within each group,
+    values are yielded in increasing integer order.
+    """
+    for popcount in range(bitlen + 1):
+        if popcount == 0:
+            if n > 0:
+                yield 0
+            continue
+
+        # First integer with this many 1 bits.
+        value = (1 << popcount) - 1
+        limit = 1 << bitlen
+
+        while value < limit:
+            if value < n:
+                yield value
+
+            # Gosper's hack: next higher integer with the same number of 1 bits.
+            smallest = value & -value
+            ripple = value + smallest
+            value = ripple | (((ripple ^ value) >> 2) // smallest)
+
+
+def layered_popcount_direct_mapping(side: int) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    The old generateLayeredMapping.py behavior, merged into this file.
+
+    The mapping has two steps:
+
+      1. Group all boid IDs / 24-bit values by how many 1s they have in binary.
+      2. Assign those groups into diagonal RGB layers where R + G + B increases.
+
+    Conceptually, this makes the number of occupied color-dimension slices line up
+    with broad layers of the RGB cube.
+    """
+    n = side ** 3
+    bitlen = math.ceil(math.log2(n))
+
+    boid_to_rgb = np.empty((n, 3), dtype=np.uint16)
+    rgb_to_boid = np.empty(n, dtype=np.uint32)
+
+    coord_iter = _iter_diagonal_rgb_coords(side)
+    count = 0
+
+    for boid_id in _iter_ints_by_popcount(n, bitlen):
+        try:
+            r, g, b = next(coord_iter)
+        except StopIteration as exc:
+            raise RuntimeError("Ran out of RGB coordinates before assigning every boid.") from exc
+
+        boid_to_rgb[boid_id] = (r, g, b)
+        rgb_to_boid[r + side * (g + side * b)] = boid_id
+        count += 1
+
+    if count != n:
+        raise RuntimeError(f"Expected to assign {n} boids, but assigned {count}.")
+
+    try:
+        extra_coord = next(coord_iter)
+    except StopIteration:
+        extra_coord = None
+
+    if extra_coord is not None:
+        raise RuntimeError("Generated more RGB coordinates than expected.")
+
+    return boid_to_rgb, rgb_to_boid
+
 
 # --------------------------------------------------------------------------------------
 # ---------------------- 3-pass monotone transport (CPU, O(N)) ------------------------
 # --------------------------------------------------------------------------------------
 
 @njit(cache=True)
-def _stable_counting_sort_by_key(keys_u16, values_i32, K):
+def _stable_counting_sort_by_key(keys_u16, values_i32, key_count):
     n = values_i32.size
-    counts = np.zeros(K, dtype=np.int64)
+    counts = np.zeros(key_count, dtype=np.int64)
+
     for i in range(n):
         counts[keys_u16[i]] += 1
-    offsets = np.empty(K, dtype=np.int64)
-    run = 0
-    for k in range(K):
-        offsets[k] = run
-        run += counts[k]
+
+    offsets = np.empty(key_count, dtype=np.int64)
+    running = 0
+    for key in range(key_count):
+        offsets[key] = running
+        running += counts[key]
+
     out = np.empty_like(values_i32)
     for i in range(n):
         key = keys_u16[i]
         pos = offsets[key]
         out[pos] = values_i32[i]
         offsets[key] = pos + 1
+
     return out
 
-def three_pass_monotone_transport(fx, fy, fz, side: int):
-    N = fx.size
-    QX, QY = side * side, side
-    boids = np.arange(N, dtype=np.int32)
+
+def three_pass_monotone_transport(
+    fx: np.ndarray,
+    fy: np.ndarray,
+    fz: np.ndarray,
+    side: int,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Build an initial bijective RGB assignment from feature values.
+
+    This does quota-based stable sorting in three stages:
+
+      1. Sort all boids by fx and assign R.
+      2. Within each R slice, sort by fy and assign G.
+      3. Within each R/G column, sort by fz and assign B.
+
+    The result is already a valid bijection. The optional CUDA swaps later just
+    refine it locally.
+    """
+    n = fx.size
+    qx = side * side
+    qy = side
+    boids = np.arange(n, dtype=np.int32)
 
     perm_x = _stable_counting_sort_by_key(fx.astype(np.uint16), boids, side)
-    x_assigned = np.empty(N, dtype=np.uint16)
-    y_assigned = np.empty(N, dtype=np.uint16)
-    z_assigned = np.empty(N, dtype=np.uint16)
-    rgb_to_boid = np.empty(N, dtype=np.int32)
-    pos_of_boid = np.empty(N, dtype=np.uint32)
+    r_assigned = np.empty(n, dtype=np.uint16)
+    g_assigned = np.empty(n, dtype=np.uint16)
+    b_assigned = np.empty(n, dtype=np.uint16)
+    rgb_to_boid = np.empty(n, dtype=np.int32)
+    pos_of_boid = np.empty(n, dtype=np.uint32)
 
-    for xi in range(side):
-        ids_x = perm_x[xi*QX:(xi+1)*QX]
-        x_assigned[ids_x] = xi
-        ids_x_sorted_by_y = _stable_counting_sort_by_key(fy[ids_x].astype(np.uint16), ids_x, side)
-        for yi in range(side):
-            ids_xy = ids_x_sorted_by_y[yi*QY:(yi+1)*QY]
-            y_assigned[ids_xy] = yi
-            ids_xy_sorted_by_z = _stable_counting_sort_by_key(fz[ids_xy].astype(np.uint16), ids_xy, side)
-            for zi, boid in enumerate(ids_xy_sorted_by_z):
-                z_assigned[boid] = zi
-                idx = int(xi + side * (yi + side * zi))
+    for r in range(side):
+        ids_r = perm_x[r * qx : (r + 1) * qx]
+        r_assigned[ids_r] = r
+        ids_r_sorted_by_g = _stable_counting_sort_by_key(
+            fy[ids_r].astype(np.uint16), ids_r, side
+        )
+
+        for g in range(side):
+            ids_rg = ids_r_sorted_by_g[g * qy : (g + 1) * qy]
+            g_assigned[ids_rg] = g
+            ids_rg_sorted_by_b = _stable_counting_sort_by_key(
+                fz[ids_rg].astype(np.uint16), ids_rg, side
+            )
+
+            for b, boid in enumerate(ids_rg_sorted_by_b):
+                b_assigned[boid] = b
+                idx = int(r + side * (g + side * b))
                 rgb_to_boid[idx] = boid
-                pos_of_boid[boid] = np.uint32((xi & 0xFF) | ((yi & 0xFF) << 8) | ((zi & 0xFF) << 16))
+                pos_of_boid[boid] = np.uint32(
+                    (r & 0xFF) | ((g & 0xFF) << 8) | ((b & 0xFF) << 16)
+                )
 
-    return x_assigned, y_assigned, z_assigned, rgb_to_boid, pos_of_boid
+    return r_assigned, g_assigned, b_assigned, rgb_to_boid, pos_of_boid
 
 
 # --------------------------------------------------------------------------------------
@@ -293,179 +542,298 @@ def three_pass_monotone_transport(fx, fy, fz, side: int):
 @torch.no_grad()
 def swap_pass_x(boid_of_voxel, pos_of_boid, fx, side, parity):
     s = side
-    # grid[x,y,z]
     grid = torch.arange(s**3, device=boid_of_voxel.device).reshape(s, s, s)
-    # valid x are [parity, parity+2, ..., s-2]  (so x+1 is valid)
-    idxL = grid[parity:s-1:2, :, :].reshape(-1)
-    idxR = grid[parity+1:s:2, :, :].reshape(-1)
 
-    boidL, boidR = boid_of_voxel[idxL], boid_of_voxel[idxR]
-    fi, fj = fx[boidL], fx[boidR]
-    mask = (fi > fj) | ((fi == fj) & (boidL > boidR))
+    idx_l = grid[parity : s - 1 : 2, :, :].reshape(-1)
+    idx_r = grid[parity + 1 : s : 2, :, :].reshape(-1)
+
+    boid_l, boid_r = boid_of_voxel[idx_l], boid_of_voxel[idx_r]
+    fi, fj = fx[boid_l], fx[boid_r]
+    mask = (fi > fj) | ((fi == fj) & (boid_l > boid_r))
+
     if mask.any():
-        tmpL, tmpR = boidL[mask], boidR[mask]
-        boid_of_voxel[idxL[mask]], boid_of_voxel[idxR[mask]] = tmpR, tmpL
-        # update pos
-        x = (idxL[mask] % s)
-        y = (idxL[mask] // s) % s
-        z = (idxL[mask] // (s*s))
-        pos_of_boid[tmpL] = (x+1) | (y<<8) | (z<<16)
-        pos_of_boid[tmpR] = (x)   | (y<<8) | (z<<16)
+        tmp_l, tmp_r = boid_l[mask], boid_r[mask]
+        boid_of_voxel[idx_l[mask]], boid_of_voxel[idx_r[mask]] = tmp_r, tmp_l
+
+        x = idx_l[mask] % s
+        y = (idx_l[mask] // s) % s
+        z = idx_l[mask] // (s * s)
+        pos_of_boid[tmp_l] = (x + 1) | (y << 8) | (z << 16)
+        pos_of_boid[tmp_r] = x | (y << 8) | (z << 16)
+
     return mask.sum().item()
+
 
 @torch.no_grad()
 def swap_pass_y(boid_of_voxel, pos_of_boid, fy, side, parity):
     s = side
     grid = torch.arange(s**3, device=boid_of_voxel.device).reshape(s, s, s)
-    # valid y = [parity, parity+2, ..., s-2]
-    idxB = grid[:, parity:s-1:2, :].reshape(-1)
-    idxT = grid[:, parity+1:s:2, :].reshape(-1)
 
-    boidB, boidT = boid_of_voxel[idxB], boid_of_voxel[idxT]
-    fi, fj = fy[boidB], fy[boidT]
-    mask = (fi > fj) | ((fi == fj) & (boidB > boidT))
+    idx_b = grid[:, parity : s - 1 : 2, :].reshape(-1)
+    idx_t = grid[:, parity + 1 : s : 2, :].reshape(-1)
+
+    boid_b, boid_t = boid_of_voxel[idx_b], boid_of_voxel[idx_t]
+    fi, fj = fy[boid_b], fy[boid_t]
+    mask = (fi > fj) | ((fi == fj) & (boid_b > boid_t))
+
     if mask.any():
-        tmpB, tmpT = boidB[mask], boidT[mask]
-        boid_of_voxel[idxB[mask]], boid_of_voxel[idxT[mask]] = tmpT, tmpB
-        x = (idxB[mask] % s)
-        y = (idxB[mask] // s) % s
-        z = (idxB[mask] // (s*s))
-        pos_of_boid[tmpB] = (x) | ((y+1)<<8) | (z<<16)
-        pos_of_boid[tmpT] = (x) | (y<<8)     | (z<<16)
+        tmp_b, tmp_t = boid_b[mask], boid_t[mask]
+        boid_of_voxel[idx_b[mask]], boid_of_voxel[idx_t[mask]] = tmp_t, tmp_b
+
+        x = idx_b[mask] % s
+        y = (idx_b[mask] // s) % s
+        z = idx_b[mask] // (s * s)
+        pos_of_boid[tmp_b] = x | ((y + 1) << 8) | (z << 16)
+        pos_of_boid[tmp_t] = x | (y << 8) | (z << 16)
+
     return mask.sum().item()
+
 
 @torch.no_grad()
 def swap_pass_z(boid_of_voxel, pos_of_boid, fz, side, parity):
     s = side
     grid = torch.arange(s**3, device=boid_of_voxel.device).reshape(s, s, s)
-    # valid z = [parity, parity+2, ..., s-2]
-    idxF = grid[:, :, parity:s-1:2].reshape(-1)
-    idxB = grid[:, :, parity+1:s:2].reshape(-1)
 
-    boidF, boidB = boid_of_voxel[idxF], boid_of_voxel[idxB]
-    fi, fj = fz[boidF], fz[boidB]
-    mask = (fi > fj) | ((fi == fj) & (boidF > boidB))
+    idx_f = grid[:, :, parity : s - 1 : 2].reshape(-1)
+    idx_b = grid[:, :, parity + 1 : s : 2].reshape(-1)
+
+    boid_f, boid_b = boid_of_voxel[idx_f], boid_of_voxel[idx_b]
+    fi, fj = fz[boid_f], fz[boid_b]
+    mask = (fi > fj) | ((fi == fj) & (boid_f > boid_b))
+
     if mask.any():
-        tmpF, tmpB = boidF[mask], boidB[mask]
-        boid_of_voxel[idxF[mask]], boid_of_voxel[idxB[mask]] = tmpB, tmpF
-        x = (idxF[mask] % s)
-        y = (idxF[mask] // s) % s
-        z = (idxF[mask] // (s*s))
-        pos_of_boid[tmpF] = (x) | (y<<8) | ((z+1)<<16)
-        pos_of_boid[tmpB] = (x) | (y<<8) | (z<<16)
+        tmp_f, tmp_b = boid_f[mask], boid_b[mask]
+        boid_of_voxel[idx_f[mask]], boid_of_voxel[idx_b[mask]] = tmp_b, tmp_f
+
+        x = idx_f[mask] % s
+        y = (idx_f[mask] // s) % s
+        z = idx_f[mask] // (s * s)
+        pos_of_boid[tmp_f] = x | (y << 8) | ((z + 1) << 16)
+        pos_of_boid[tmp_b] = x | (y << 8) | (z << 16)
+
     return mask.sum().item()
 
 
-def run_neighbor_swaps_torch(side, boid_of_voxel, pos_of_boid, fx, fy, fz,
-                             max_iters=6, stop_ratio=0.0, verbose=True):
-    N = side**3
-    for it in range(max_iters):
+def run_neighbor_swaps_torch(
+    side,
+    boid_of_voxel,
+    pos_of_boid,
+    fx,
+    fy,
+    fz,
+    max_iters=6,
+    stop_ratio=0.0,
+    verbose=True,
+) -> None:
+    """
+    Optional local refinement for feature / transport modes.
+
+    These passes compare neighboring voxels and swap them when that improves the
+    local feature ordering. They only run on CUDA, because this is a bandwidth-heavy
+    operation and the CPU version is not worth it here.
+    """
+    n = side**3
+
+    for iteration in range(max_iters):
         total_swaps = 0
         t0 = time.time()
-        for parity in (0,1):
+
+        for parity in (0, 1):
             total_swaps += swap_pass_x(boid_of_voxel, pos_of_boid, fx, side, parity)
             total_swaps += swap_pass_y(boid_of_voxel, pos_of_boid, fy, side, parity)
             total_swaps += swap_pass_z(boid_of_voxel, pos_of_boid, fz, side, parity)
+
         t1 = time.time()
+
         if verbose:
-            print(f"[swap {it+1}/{max_iters}] swaps={total_swaps:,} time={t1-t0:.3f}s ratio={total_swaps/N:.3e}")
-        if stop_ratio>0 and total_swaps < stop_ratio*N:
-            if verbose: print("Early stop.")
+            print(
+                f"[swap {iteration + 1}/{max_iters}] "
+                f"swaps={total_swaps:,} time={t1 - t0:.3f}s ratio={total_swaps / n:.3e}"
+            )
+
+        if stop_ratio > 0 and total_swaps < stop_ratio * n:
+            if verbose:
+                print("Early stop.")
             break
 
 
-# --------------------------------------------------------------------------------------
-# ------------------------------------- MAIN ------------------------------------------
-# --------------------------------------------------------------------------------------
+def transport_mapping(
+    side: int,
+    mapping_mode: str,
+    max_iters: int,
+    stop_ratio: float,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Build a mapping using the feature -> transport -> optional swap pipeline.
+    """
+    n = side**3
+    boid_ids = np.arange(n, dtype=np.uint32)
+    fx, fy, fz = compute_features(boid_ids, side, mapping_mode)
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--side", type=int, default=256)
-    ap.add_argument(
-        "--feature-mode",
-        type=str,
-        default="rgb_bytes_generalized",
-        choices=["rgb_bytes_generalized", "SPC", "centered_bgr"],
-    )
-    ap.add_argument("--max-iters", type=int, default=6)
-    ap.add_argument("--stop-ratio", type=float, default=0.0)
-    ap.add_argument("--preview-csv", action="store_true")
-    ap.add_argument("--output", type=str, default="mapping.npz")
-    args = ap.parse_args()
+    _, _, _, rgb_to_boid, pos_of_boid = three_pass_monotone_transport(fx, fy, fz, side)
 
-    side = args.side
-    N = side**3
-    print(f"Generating mapping for side={side} N={N}")
+    boid_to_rgb = np.empty((n, 3), dtype=np.uint16)
+    boid_to_rgb[:, 0] = (pos_of_boid & 0xFF).astype(np.uint16)
+    boid_to_rgb[:, 1] = ((pos_of_boid >> 8) & 0xFF).astype(np.uint16)
+    boid_to_rgb[:, 2] = ((pos_of_boid >> 16) & 0xFF).astype(np.uint16)
 
-    # Features
-    if args.feature_mode == "centered_bgr":
-        print("Using direct centered_bgr bit-permutation mapping.")
-        boid_to_rgb, rgb_to_boid = centered_bgr_direct_mapping(side)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Using device:", device)
 
-    else:
-        # Features
-        boid_ids = np.arange(N, dtype=np.uint32)
-        fx, fy, fz = compute_features(boid_ids, side, args.feature_mode)
+    boid_of_voxel = torch.from_numpy(rgb_to_boid.astype(np.int64)).to(device)
+    pos_of_boid_t = torch.from_numpy(pos_of_boid.astype(np.int64)).to(device)
+    fx_t = torch.from_numpy(fx.astype(np.int64)).to(device)
+    fy_t = torch.from_numpy(fy.astype(np.int64)).to(device)
+    fz_t = torch.from_numpy(fz.astype(np.int64)).to(device)
 
-        # 3-pass monotone transport
-        _, _, _, rgb_to_boid, pos_of_boid = three_pass_monotone_transport(fx, fy, fz, side)
+    if max_iters > 0 and device.type == "cuda":
+        run_neighbor_swaps_torch(
+            side,
+            boid_of_voxel,
+            pos_of_boid_t,
+            fx_t,
+            fy_t,
+            fz_t,
+            max_iters=max_iters,
+            stop_ratio=stop_ratio,
+            verbose=True,
+        )
 
-        # Build boid_to_rgb
-        boid_to_rgb = np.empty((N, 3), dtype=np.uint16)
+        rgb_to_boid = boid_of_voxel.cpu().numpy().astype(np.uint32)
+        pos_of_boid = pos_of_boid_t.cpu().numpy().astype(np.uint32)
         boid_to_rgb[:, 0] = (pos_of_boid & 0xFF).astype(np.uint16)
         boid_to_rgb[:, 1] = ((pos_of_boid >> 8) & 0xFF).astype(np.uint16)
         boid_to_rgb[:, 2] = ((pos_of_boid >> 16) & 0xFF).astype(np.uint16)
+    else:
+        print("Skipping swap passes (CPU or max-iters=0).")
 
-        # Move to torch for swaps
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print("Using device:", device)
-        boid_of_voxel = torch.from_numpy(rgb_to_boid.astype(np.int64)).to(device)
-        pos_of_boid_t = torch.from_numpy(pos_of_boid.astype(np.int64)).to(device)
-        fx_t = torch.from_numpy(fx.astype(np.int64)).to(device)
-        fy_t = torch.from_numpy(fy.astype(np.int64)).to(device)
-        fz_t = torch.from_numpy(fz.astype(np.int64)).to(device)
+    return boid_to_rgb, rgb_to_boid.astype(np.uint32)
 
-        if args.max_iters > 0 and device.type == "cuda":
-            run_neighbor_swaps_torch(
-                side,
-                boid_of_voxel,
-                pos_of_boid_t,
-                fx_t,
-                fy_t,
-                fz_t,
-                max_iters=args.max_iters,
-                stop_ratio=args.stop_ratio,
-                verbose=True,
-            )
 
-            # Copy back
-            rgb_to_boid = boid_of_voxel.cpu().numpy().astype(np.uint32)
-            pos_of_boid = pos_of_boid_t.cpu().numpy().astype(np.uint32)
-            boid_to_rgb[:, 0] = (pos_of_boid & 0xFF).astype(np.uint16)
-            boid_to_rgb[:, 1] = ((pos_of_boid >> 8) & 0xFF).astype(np.uint16)
-            boid_to_rgb[:, 2] = ((pos_of_boid >> 16) & 0xFF).astype(np.uint16)
-        else:
-            print("Skipping swap passes (CPU or max-iters=0).")
+# --------------------------------------------------------------------------------------
+# ------------------------------------- Main -------------------------------------------
+# --------------------------------------------------------------------------------------
 
-    # Save mapping
-    meta = {"side": side, "N": int(N), "feature_mode": args.feature_mode,
-            "description":"boid_to_rgb[i]=(x,y,z); rgb_to_boid[linear(x,y,z)]=i"}
-    np.savez_compressed(args.output,
+def build_mapping(
+    side: int,
+    mapping_mode: str,
+    max_iters: int,
+    stop_ratio: float,
+) -> Tuple[np.ndarray, np.ndarray, str]:
+    """
+    Dispatch to the correct mapping generator.
+
+    This keeps the important distinction clear:
+    - feature / transport modes go through compute_features()
+    - direct modes build the mapping themselves
+    """
+    if mapping_mode == "centered_bgr":
+        print("Using direct centered_bgr bit-permutation mapping.")
+        description = (
+            "Direct bit permutation: C bits 0..7 -> blue low-to-high, "
+            "C bits 8..15 -> centered green, C bits 16..23 -> red high-to-low."
+        )
+        boid_to_rgb, rgb_to_boid = centered_bgr_direct_mapping(side)
+
+    elif mapping_mode == "layered_popcount":
+        print("Using direct layered_popcount mapping.")
+        description = (
+            "Values are grouped by binary popcount, then assigned through diagonal "
+            "RGB layers where R+G+B increases."
+        )
+        boid_to_rgb, rgb_to_boid = layered_popcount_direct_mapping(side)
+
+    elif mapping_mode in TRANSPORT_MAPPING_MODES:
+        print(f"Using feature / transport mapping: {mapping_mode}")
+        description = (
+            f"Feature / transport mapping using {mapping_mode}, followed by optional "
+            "CUDA neighbor compare-and-swap refinement."
+        )
+        boid_to_rgb, rgb_to_boid = transport_mapping(
+            side=side,
+            mapping_mode=mapping_mode,
+            max_iters=max_iters,
+            stop_ratio=stop_ratio,
+        )
+
+    else:
+        raise ValueError(f"Unknown mapping mode: {mapping_mode}")
+
+    return boid_to_rgb, rgb_to_boid, description
+
+
+def parse_args() -> argparse.Namespace:
+    ap = argparse.ArgumentParser(
+        description="Generate a bijective color mapping file for the WHCT / XYTC viewer."
+    )
+    ap.add_argument("--side", type=int, default=256, help="RGB cube side length.")
+    ap.add_argument(
+        "--mapping-mode",
+        "--feature-mode",
+        dest="mapping_mode",
+        type=str,
+        default="rgb_bytes_generalized",
+        choices=MAPPING_MODES,
+        help=(
+            "Mapping strategy to use. --feature-mode is still accepted as an old alias, "
+            "but --mapping-mode is the clearer name."
+        ),
+    )
+    ap.add_argument(
+        "--max-iters",
+        type=int,
+        default=6,
+        help="Number of CUDA swap-refinement iterations for feature / transport modes.",
+    )
+    ap.add_argument(
+        "--stop-ratio",
+        type=float,
+        default=0.0,
+        help="Early-stop threshold for CUDA swap refinement. 0 disables early stop.",
+    )
+    ap.add_argument(
+        "--preview-csv",
+        action="store_true",
+        help="Also write a preview CSV. Only allowed when N <= 1,000,000.",
+    )
+    ap.add_argument("--output", type=str, default="mapping.npz")
+    return ap.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+
+    side = int(args.side)
+    if side < 2 or side > 256:
+        raise ValueError("side must be between 2 and 256. The mapping stores RGB coordinates as byte-sized values.")
+
+    n = side**3
+    print(f"Generating mapping for side={side} N={n}")
+
+    boid_to_rgb, rgb_to_boid, description = build_mapping(
+        side=side,
+        mapping_mode=args.mapping_mode,
+        max_iters=args.max_iters,
+        stop_ratio=args.stop_ratio,
+    )
+
+    save_mapping_npz(
+        output=args.output,
         boid_to_rgb=boid_to_rgb,
         rgb_to_boid=rgb_to_boid,
-        side=np.array(side,dtype=np.int32),
-        meta=np.array(json.dumps(meta),dtype=object)
+        side=side,
+        mapping_mode=args.mapping_mode,
+        description=description,
     )
-    print("Saved",args.output)
 
-    if args.preview_csv and N<=1_000_000:
-        csv_path = os.path.splitext(args.output)[0]+"_preview.csv"
-        with open(csv_path,"w") as f:
-            f.write("boid_id,R,G,B\n")
-            for i in range(N):
-                r,g,b=boid_to_rgb[i]
-                f.write(f"{i},{r},{g},{b}\n")
-        print("Saved",csv_path)
+    if args.preview_csv:
+        if n > 1_000_000:
+            raise ValueError(
+                "Refusing to write preview CSV because N > 1,000,000. "
+                "For side=256 this would be 16,777,216 rows."
+            )
+        write_preview_csv(args.output, boid_to_rgb)
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()
