@@ -658,6 +658,8 @@ class WHCTMainWindow(QMainWindow):
         self.update_button = QPushButton("Update")
         self.save_button = QPushButton("Save Animation")
 
+        self.loop_checkbox = QCheckBox("Loop")
+
         self.pause_button.clicked.connect(self.pause_animation)
         self.play_button.clicked.connect(self.start_animation)
         self.update_button.clicked.connect(self.update_animation)
@@ -665,6 +667,9 @@ class WHCTMainWindow(QMainWindow):
 
         for button in (self.pause_button, self.play_button, self.update_button, self.save_button):
             controls_row_layout.addWidget(button)
+
+        controls_row_layout.addWidget(self.loop_checkbox)
+        controls_row_layout.addStretch(1)
 
         playback_layout.addWidget(controls_row)
         right_layout.addWidget(playback_panel, stretch=0)
@@ -1028,8 +1033,11 @@ class WHCTMainWindow(QMainWindow):
 
         s.current_frame += 1
         if s.current_frame >= s.Tres:
-            s.current_frame = max(0, s.Tres - 1)
-            self.pause_animation()
+            if self.loop_checkbox.isChecked():
+                s.current_frame = 0
+            else:
+                s.current_frame = max(0, s.Tres - 1)
+                self.pause_animation()
 
     def set_frame(self, value: int):
         self.engine.state.current_frame = int(value)
