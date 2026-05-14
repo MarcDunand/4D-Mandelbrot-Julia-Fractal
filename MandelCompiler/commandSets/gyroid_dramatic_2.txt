@@ -1,0 +1,335 @@
+# ------------------------------------------------------------------
+# 4D gyroid dramatic showcase - 90 second version
+# ~90 seconds at 30 fps = 2700 frames
+# 16:9 landscape, 896 x 504
+#
+# Built from the bones of gyroid_dramatic / showcase v2:
+# - generally more zoomed out in X/Y
+# - frequent bursts
+# - thinner C range most of the time
+# - wider and narrower C bursts
+# - at least two extreme zoom peaks with X span >= 200
+# - long sections where only tcur changes
+# - one long only-time section during a massive zoom peak
+# - calm resolution
+# ------------------------------------------------------------------
+
+# Initial state
+indicator 4D_gyroid_shell
+
+xmin -8.0
+xmax 8.0
+ymin -4.5
+ymax 4.5
+
+tmin -8.0
+tmax 8.0
+tcur -3.2
+
+cmin -0.9
+cmax 0.9
+
+xres 896
+yres 504
+tres 2700
+cres 24
+
+xyrot 10
+xtrot 18
+xcrot 32
+ytrot -14
+ycrot 8
+ctrot 4
+
+precision 30
+
+
+# ================================================================
+# PHASE 1: broad arrival / more zoomed out than v2
+# ================================================================
+
+xmin 0 220 -9.8
+xmax 0 220 9.8
+ymin 0 220 -5.5125
+ymax 0 220 5.5125
+
+tcur 0 220 -1.4
+
+cmin 0 220 -0.75
+cmax 0 220 0.95
+
+xyrot 0 220 48
+xtrot 0 220 46
+xcrot 0 220 82
+ytrot 0 220 28
+ycrot 0 220 54
+ctrot 0 220 24
+
+
+# ================================================================
+# PHASE 2: first tightening burst, but not microscopic
+# ================================================================
+
+xmin 220 340 -3.2
+xmax 220 340 3.8
+ymin 220 340 -1.96875
+ymax 220 340 1.96875
+
+tcur 220 285 2.9
+tcur 285 340 1.8
+
+cmin 220 275 -0.20
+cmax 220 275 0.26
+cmin 275 340 -0.62
+cmax 275 340 0.68
+
+xyrot 220 340 118
+xtrot 220 340 148
+xcrot 220 340 176
+ytrot 220 340 108
+ycrot 220 340 136
+ctrot 220 340 92
+
+
+# ================================================================
+# PHASE 3: only-time section, slow repeating patterns
+# No X/Y/C/rotation changes here after frame 340
+# ================================================================
+
+tcur 340 580 -2.2
+
+
+# ================================================================
+# PHASE 4: sudden outward snap / medium-wide reveal
+# ================================================================
+
+xmin 580 680 -14.0
+xmax 580 680 14.0
+ymin 580 680 -7.875
+ymax 580 680 7.875
+
+tcur 580 680 -4.8
+
+cmin 580 640 -1.35
+cmax 580 640 1.55
+cmin 640 680 -0.75
+cmax 640 680 0.85
+
+xyrot 580 680 188
+xtrot 580 680 232
+xcrot 580 680 262
+ytrot 580 680 190
+ycrot 580 680 224
+ctrot 580 680 172
+
+
+# ================================================================
+# PHASE 5: long extreme zoom peak
+# X span = 240
+# This is intentionally almost only-time for a long duration.
+# It shows the transformation already baked into the current view
+# while moving through T as a spatial slice.
+# ================================================================
+
+xmin 680 780 -120.0
+xmax 680 780 120.0
+ymin 680 780 -67.5
+ymax 680 780 67.5
+
+cmin 680 780 -0.55
+cmax 680 780 0.65
+
+xyrot 680 780 246
+xtrot 680 780 310
+xcrot 680 780 338
+ytrot 680 780 260
+ycrot 680 780 296
+ctrot 680 780 238
+
+# Only tcur changes for a long stretch while massively zoomed out.
+# Slow enough to reveal the repeating/global behavior.
+tcur 780 1080 -1.6
+
+
+# ================================================================
+# PHASE 6: fast only-time shock while still near the huge scale
+# No other values change in this interval.
+# ================================================================
+
+tcur 1080 1160 6.2
+
+
+# ================================================================
+# PHASE 7: dive back into structure, wider than v2 closeups
+# ================================================================
+
+xmin 1160 1300 -5.2
+xmax 1160 1300 5.6
+ymin 1160 1300 -3.0375
+ymax 1160 1300 3.0375
+
+tcur 1160 1240 3.0
+tcur 1240 1300 1.2
+
+cmin 1160 1210 -0.14
+cmax 1160 1210 0.18
+cmin 1210 1300 -0.45
+cmax 1210 1300 0.52
+
+xyrot 1160 1300 360
+xtrot 1160 1300 420
+xcrot 1160 1300 480
+ytrot 1160 1300 345
+ycrot 1160 1300 400
+ctrot 1160 1300 318
+
+
+# ================================================================
+# PHASE 8: medium drift / dynamic but not cramped
+# ================================================================
+
+xmin 1300 1460 -12.5
+xmax 1300 1460 9.5
+ymin 1300 1460 -4.7
+ymax 1300 1460 7.675
+
+tcur 1300 1370 -1.8
+tcur 1370 1460 -4.9
+
+cmin 1300 1360 -0.95
+cmax 1300 1360 1.15
+cmin 1360 1460 -0.35
+cmax 1360 1460 0.45
+
+xyrot 1300 1460 470
+xtrot 1300 1460 540
+xcrot 1300 1460 610
+ytrot 1300 1460 455
+ycrot 1300 1460 505
+ctrot 1300 1460 430
+
+
+# ================================================================
+# PHASE 9: second only-time passage, medium-fast
+# No X/Y/C/rotation changes.
+# ================================================================
+
+tcur 1460 1640 4.4
+
+
+# ================================================================
+# PHASE 10: second massive zoom peak
+# X span = 260
+# This one is more violent and faster than the first.
+# ================================================================
+
+xmin 1640 1740 -130.0
+xmax 1640 1740 130.0
+ymin 1640 1740 -73.125
+ymax 1640 1740 73.125
+
+tcur 1640 1700 -5.8
+tcur 1700 1740 -2.5
+
+cmin 1640 1700 -1.8
+cmax 1640 1700 2.1
+cmin 1700 1740 -0.42
+cmax 1700 1740 0.52
+
+xyrot 1640 1740 620
+xtrot 1640 1740 720
+xcrot 1640 1740 810
+ytrot 1640 1740 600
+ycrot 1640 1740 690
+ctrot 1640 1740 565
+
+
+# ================================================================
+# PHASE 11: very fast only-time scan at huge scale
+# No other values change here.
+# ================================================================
+
+tcur 1740 1840 7.5
+
+
+# ================================================================
+# PHASE 12: collapse inward, but stay legible
+# ================================================================
+
+xmin 1840 1980 -7.8
+xmax 1840 1980 6.2
+ymin 1840 1980 -3.25
+ymax 1840 1980 4.625
+
+tcur 1840 1910 2.2
+tcur 1910 1980 0.6
+
+cmin 1840 1900 -0.08
+cmax 1840 1900 0.12
+cmin 1900 1980 -0.32
+cmax 1900 1980 0.38
+
+xyrot 1840 1980 760
+xtrot 1840 1980 835
+xcrot 1840 1980 910
+ytrot 1840 1980 720
+ycrot 1840 1980 790
+ctrot 1840 1980 665
+
+
+# ================================================================
+# PHASE 13: slow only-time breathing pattern
+# No other values change.
+# ================================================================
+
+tcur 1980 2220 -1.1
+
+
+# ================================================================
+# PHASE 14: penultimate broad bloom
+# ================================================================
+
+xmin 2220 2380 -18.0
+xmax 2220 2380 18.0
+ymin 2220 2380 -10.125
+ymax 2220 2380 10.125
+
+tcur 2220 2300 3.6
+tcur 2300 2380 1.4
+
+cmin 2220 2290 -1.05
+cmax 2220 2290 1.25
+cmin 2290 2380 -0.65
+cmax 2290 2380 0.82
+
+xyrot 2220 2380 880
+xtrot 2220 2380 935
+xcrot 2220 2380 1010
+ytrot 2220 2380 840
+ycrot 2220 2380 900
+ctrot 2220 2380 760
+
+
+# ================================================================
+# PHASE 15: final drift / calm resolution
+# ================================================================
+
+xmin 2380 2700 -10.0
+xmax 2380 2700 10.0
+ymin 2380 2700 -5.625
+ymax 2380 2700 5.625
+
+tcur 2380 2520 0.8
+tcur 2520 2700 -0.2
+
+cmin 2380 2520 -0.72
+cmax 2380 2520 0.84
+cmin 2520 2700 -0.9
+cmax 2520 2700 1.0
+
+xyrot 2380 2700 950
+xtrot 2380 2700 985
+xcrot 2380 2700 1040
+ytrot 2380 2700 900
+ycrot 2380 2700 945
+ctrot 2380 2700 820

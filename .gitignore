@@ -1,6 +1,8 @@
 videoOutput
 debug.log
 coolOutputs
+MandelCompiler/outputs/*
+
 *.pt
 *.npz
 

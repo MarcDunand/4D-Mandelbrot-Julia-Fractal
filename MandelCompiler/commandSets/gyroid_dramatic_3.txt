@@ -1,0 +1,536 @@
+# ------------------------------------------------------------------
+# 4D gyroid showcase - extended smoothed 2-minute version
+# ~2 minutes at 30 fps = 3600 frames
+# 16:9 landscape, 896 x 504
+# Designed for beauty / visual impact rather than explanation
+# ------------------------------------------------------------------
+
+# Initial state
+indicator 4D_gyroid_shell
+
+xmin -4.0
+xmax 4.0
+ymin -2.25
+ymax 2.25
+
+tmin -5.5
+tmax 5.5
+tcur -2.6
+
+cmin -1.0
+cmax 1.0
+
+xres 896
+yres 504
+tres 3600
+cres 24
+
+xyrot 10
+xtrot 18
+xcrot 32
+ytrot -14
+ycrot 8
+ctrot 4
+
+precision 30
+
+
+# ================================================================
+# PHASE 1: arrive gently, already alive
+# ================================================================
+
+xmin 0 180 -2.4 smooth
+xmax 0 180 2.8 smooth
+ymin 0 180 -1.55 smooth
+ymax 0 180 1.375 smooth
+
+tcur 0 180 -0.9 smooth
+
+cmin 0 180 -0.8 smooth
+cmax 0 180 0.95 smooth
+
+xyrot 0 180 55 smooth
+xtrot 0 180 42 smooth
+xcrot 0 180 78 smooth
+ytrot 0 180 30 smooth
+ycrot 0 180 46 smooth
+ctrot 0 180 20 smooth
+
+
+# ================================================================
+# PHASE 2: first tightening burst
+# ================================================================
+
+xmin 180 260 -0.7 smooth
+xmax 180 260 1.0 smooth
+ymin 180 260 -0.33 smooth
+ymax 180 260 0.626 smooth
+
+tcur 180 230 2.8 smooth
+tcur 230 260 2.2 smooth
+
+cmin 180 220 -0.22 smooth
+cmax 180 220 0.30 smooth
+cmin 220 260 -0.55 smooth
+cmax 220 260 0.62 smooth
+
+xyrot 180 260 110 smooth
+xtrot 180 260 132 smooth
+xcrot 180 260 158 smooth
+ytrot 180 260 95 smooth
+ycrot 180 260 120 smooth
+ctrot 180 260 88 smooth
+
+
+# ================================================================
+# PHASE 3: sudden huge reveal
+# ================================================================
+
+xmin 260 360 -8.6 smooth
+xmax 260 360 7.4 smooth
+ymin 260 360 -4.7 smooth
+ymax 260 360 4.3 smooth
+
+tcur 260 300 -4.6 smooth
+tcur 300 360 -3.9 smooth
+
+cmin 260 320 -1.8 smooth
+cmax 260 320 2.2 smooth
+cmin 320 360 -0.95 smooth
+cmax 320 360 1.15 smooth
+
+xyrot 260 360 170 smooth
+xtrot 260 360 215 smooth
+xcrot 260 360 245 smooth
+ytrot 260 360 180 smooth
+ycrot 260 360 210 smooth
+ctrot 260 360 165 smooth
+
+
+# ================================================================
+# PHASE 4: abrupt dive into a tiny off-center chamber
+# ================================================================
+
+xmin 360 460 0.9 smooth
+xmax 360 460 1.8 smooth
+ymin 360 460 -0.82 smooth
+ymax 360 460 -0.31 smooth
+
+tcur 360 410 4.2 linear
+tcur 410 460 3.0 smooth
+
+cmin 360 410 -0.18 smooth
+cmax 360 410 0.22 smooth
+cmin 410 460 -0.45 smooth
+cmax 410 460 0.40 smooth
+
+xyrot 360 460 250 smooth
+xtrot 360 460 285 smooth
+xcrot 360 460 320 smooth
+ytrot 360 460 240 smooth
+ycrot 360 460 280 smooth
+ctrot 360 460 225 smooth
+
+
+# ================================================================
+# PHASE 5: reopen into a broad drifting weave
+# ================================================================
+
+xmin 460 620 -3.8 smooth
+xmax 460 620 5.0 smooth
+ymin 460 620 -1.10 smooth
+ymax 460 620 3.85 smooth
+
+tcur 460 560 0.9 smooth
+tcur 560 620 0.3 smooth
+
+cmin 460 520 -0.9 smooth
+cmax 460 520 1.2 smooth
+cmin 520 620 -0.38 smooth
+cmax 520 620 0.62 smooth
+
+xyrot 460 620 325 smooth
+xtrot 460 620 360 smooth
+xcrot 460 620 390 smooth
+ytrot 460 620 315 smooth
+ycrot 460 620 350 smooth
+ctrot 460 620 300 smooth
+
+
+# ================================================================
+# PHASE 6: microburst / ultra-thin C / tight weave
+# ================================================================
+
+xmin 620 720 -1.3 smooth
+xmax 620 720 0.5 smooth
+ymin 620 720 0.15 smooth
+ymax 620 720 1.162 smooth
+
+tcur 620 670 3.3 smooth
+tcur 670 720 2.8 smooth
+
+cmin 620 660 -0.12 smooth
+cmax 620 660 0.18 smooth
+cmin 660 720 -0.32 smooth
+cmax 660 720 0.36 smooth
+
+xyrot 620 720 420 smooth
+xtrot 620 720 445 smooth
+xcrot 620 720 500 smooth
+ytrot 620 720 390 smooth
+ycrot 620 720 430 smooth
+ctrot 620 720 375 smooth
+
+
+# ================================================================
+# PHASE 7: massive spatial bloom
+# ================================================================
+
+xmin 720 860 -10.2 smooth
+xmax 720 860 9.0 smooth
+ymin 720 860 -5.6 smooth
+ymax 720 860 5.2 smooth
+
+tcur 720 790 -0.2 smooth
+tcur 790 860 -1.7 smooth
+
+cmin 720 780 -2.3 smooth
+cmax 720 780 2.7 smooth
+cmin 780 860 -0.85 smooth
+cmax 780 860 1.0 smooth
+
+xyrot 720 860 500 smooth
+xtrot 720 860 560 smooth
+xcrot 720 860 610 smooth
+ytrot 720 860 470 smooth
+ycrot 720 860 520 smooth
+ctrot 720 860 455 smooth
+
+
+# ================================================================
+# PHASE 8: another dive, sharper and stranger
+# ================================================================
+
+xmin 860 980 -0.2 smooth
+xmax 860 980 1.1 smooth
+ymin 860 980 -0.55 smooth
+ymax 860 980 0.181 smooth
+
+tcur 860 920 5.0 linear
+tcur 920 980 4.6 smooth
+
+cmin 860 910 -0.10 smooth
+cmax 860 910 0.14 smooth
+cmin 910 980 -0.32 smooth
+cmax 910 980 0.24 smooth
+
+xyrot 860 980 610 smooth
+xtrot 860 980 690 smooth
+xcrot 860 980 760 smooth
+ytrot 860 980 585 smooth
+ycrot 860 980 650 smooth
+ctrot 860 980 560 smooth
+
+
+# ================================================================
+# PHASE 9: broad diagonal drift, still restless
+# ================================================================
+
+xmin 980 1120 -6.2 smooth
+xmax 980 1120 4.6 smooth
+ymin 980 1120 -2.4 smooth
+ymax 980 1120 3.675 smooth
+
+tcur 980 1040 -2.1 smooth
+tcur 1040 1120 -4.4 smooth
+
+cmin 980 1040 -1.1 smooth
+cmax 980 1040 1.4 smooth
+cmin 1040 1120 -0.7 smooth
+cmax 1040 1120 1.1 smooth
+
+xyrot 980 1120 690 smooth
+xtrot 980 1120 760 smooth
+xcrot 980 1120 820 smooth
+ytrot 980 1120 660 smooth
+ycrot 980 1120 730 smooth
+ctrot 980 1120 620 smooth
+
+
+# ================================================================
+# PHASE 10: lucid lattice / extremely thin C
+# ================================================================
+
+xmin 1120 1260 1.4 smooth
+xmax 1120 1260 2.6 smooth
+ymin 1120 1260 0.65 smooth
+ymax 1120 1260 1.325 smooth
+
+tcur 1120 1190 1.7 smooth
+tcur 1190 1260 1.0 smooth
+
+cmin 1120 1180 -0.08 smooth
+cmax 1120 1180 0.12 smooth
+cmin 1180 1260 -0.22 smooth
+cmax 1180 1260 0.28 smooth
+
+xyrot 1120 1260 790 smooth
+xtrot 1120 1260 845 smooth
+xcrot 1120 1260 920 smooth
+ytrot 1120 1260 760 smooth
+ycrot 1120 1260 820 smooth
+ctrot 1120 1260 700 smooth
+
+
+# ================================================================
+# PHASE 11: violent unspooling
+# ================================================================
+
+xmin 1260 1400 -9.5 smooth
+xmax 1260 1400 8.5 smooth
+ymin 1260 1400 -4.9 smooth
+ymax 1260 1400 5.225 smooth
+
+tcur 1260 1320 -5.0 linear
+tcur 1320 1400 -2.9 smooth
+
+cmin 1260 1320 -1.6 smooth
+cmax 1260 1320 1.8 smooth
+cmin 1320 1400 -0.42 smooth
+cmax 1320 1400 0.52 smooth
+
+xyrot 1260 1400 890 smooth
+xtrot 1260 1400 940 smooth
+xcrot 1260 1400 1010 smooth
+ytrot 1260 1400 855 smooth
+ycrot 1260 1400 910 smooth
+ctrot 1260 1400 780 smooth
+
+
+# ================================================================
+# PHASE 12: penultimate bloom
+# ================================================================
+
+xmin 1400 1560 -2.7 smooth
+xmax 1400 1560 3.5 smooth
+ymin 1400 1560 -1.8 smooth
+ymax 1400 1560 1.688 smooth
+
+tcur 1400 1470 2.4 smooth
+tcur 1470 1560 3.8 smooth
+
+cmin 1400 1470 -0.95 smooth
+cmax 1400 1470 1.10 smooth
+cmin 1470 1560 -0.55 smooth
+cmax 1470 1560 0.75 smooth
+
+xyrot 1400 1560 980 smooth
+xtrot 1400 1560 1030 smooth
+xcrot 1400 1560 1085 smooth
+ytrot 1400 1560 935 smooth
+ycrot 1400 1560 980 smooth
+ctrot 1400 1560 850 smooth
+
+
+# ================================================================
+# PHASE 13: calm resolution
+# ================================================================
+
+xmin 1560 1800 -3.8 smooth
+xmax 1560 1800 2.6 smooth
+ymin 1560 1800 -2.0 smooth
+ymax 1560 1800 1.6 smooth
+
+tcur 1560 1680 1.5 smooth
+tcur 1680 1800 0.5 smooth
+
+cmin 1560 1680 -0.75 smooth
+cmax 1560 1680 0.85 smooth
+cmin 1680 1800 -0.95 smooth
+cmax 1680 1800 1.05 smooth
+
+xyrot 1560 1800 1070 smooth
+xtrot 1560 1800 1095 smooth
+xcrot 1560 1800 1125 smooth
+ytrot 1560 1800 1010 smooth
+ycrot 1560 1800 1060 smooth
+ctrot 1560 1800 915 smooth
+
+
+# ================================================================
+# PHASE 14: after the favorite minute, begin widening the world
+# Mostly smooth motion; time still leads, but nothing is perfectly still.
+# ================================================================
+
+xmin 1800 2050 -42.0 smooth
+xmax 1800 2050 38.0 smooth
+ymin 1800 2050 -22.5 smooth
+ymax 1800 2050 22.5 smooth
+
+tcur 1800 2050 -3.8 smooth
+
+cmin 1800 1940 -0.70 smooth
+cmax 1800 1940 0.82 smooth
+cmin 1940 2050 -0.42 smooth
+cmax 1940 2050 0.58 smooth
+
+cres 1800 2050 20 smooth
+
+xyrot 1800 2050 1130 smooth
+xtrot 1800 2050 1155 smooth
+xcrot 1800 2050 1180 smooth
+ytrot 1800 2050 1060 smooth
+ycrot 1800 2050 1105 smooth
+ctrot 1800 2050 960 smooth
+
+
+# ================================================================
+# PHASE 15: long continuous zoom out toward global scale
+# X span reaches 400. The rotations are deliberately slow so the
+# time-slice pattern dominates, but the system never fully freezes.
+# Cooling begins as Cres drops.
+# ================================================================
+
+xmin 2050 2400 -202.0 smooth
+xmax 2050 2400 198.0 smooth
+ymin 2050 2400 -112.5 smooth
+ymax 2050 2400 112.5 smooth
+
+tcur 2050 2400 5.6 linear
+
+cmin 2050 2220 -0.55 smooth
+cmax 2050 2220 0.65 smooth
+cmin 2220 2400 -0.30 smooth
+cmax 2220 2400 0.42 smooth
+
+cres 2050 2220 18 smooth
+cres 2220 2400 16 smooth
+
+xyrot 2050 2400 1160 smooth
+xtrot 2050 2400 1190 smooth
+xcrot 2050 2400 1215 smooth
+ytrot 2050 2400 1088 smooth
+ycrot 2050 2400 1134 smooth
+ctrot 2050 2400 988 smooth
+
+
+# ================================================================
+# PHASE 16: immense blue field / global gyroid weather
+# X span goes slightly beyond 400. Cres falls toward 8, removing
+# the warm tones and letting the image become colder and more spectral.
+# Time moves quickly, but the rotations and C window still drift.
+# ================================================================
+
+xmin 2400 2700 -218.0 smooth
+xmax 2400 2700 214.0 smooth
+ymin 2400 2700 -121.5 smooth
+ymax 2400 2700 121.5 smooth
+
+tcur 2400 2520 -6.8 linear
+tcur 2520 2700 7.2 linear
+
+cmin 2400 2550 -0.22 smooth
+cmax 2400 2550 0.30 smooth
+cmin 2550 2700 -0.10 smooth
+cmax 2550 2700 0.16 smooth
+
+cres 2400 2550 12 smooth
+cres 2550 2700 8 smooth
+
+xyrot 2400 2700 1188 smooth
+xtrot 2400 2700 1218 smooth
+xcrot 2400 2700 1242 smooth
+ytrot 2400 2700 1112 smooth
+ycrot 2400 2700 1160 smooth
+ctrot 2400 2700 1014 smooth
+
+
+# ================================================================
+# PHASE 17: rewarming while still distant
+# Pull back from the coldest blue state. Still zoomed out enough that
+# the viewer reads broad repeating structure before the image becomes
+# more intimate again.
+# ================================================================
+
+xmin 2700 3000 -82.0 smooth
+xmax 2700 3000 78.0 smooth
+ymin 2700 3000 -45.0 smooth
+ymax 2700 3000 45.0 smooth
+
+tcur 2700 2850 1.8 smooth
+tcur 2850 3000 -2.4 smooth
+
+cmin 2700 2840 -0.28 smooth
+cmax 2700 2840 0.38 smooth
+cmin 2840 3000 -0.65 smooth
+cmax 2840 3000 0.80 smooth
+
+cres 2700 2840 14 smooth
+cres 2840 3000 20 smooth
+
+xyrot 2700 3000 1220 smooth
+xtrot 2700 3000 1246 smooth
+xcrot 2700 3000 1278 smooth
+ytrot 2700 3000 1145 smooth
+ycrot 2700 3000 1190 smooth
+ctrot 2700 3000 1048 smooth
+
+
+# ================================================================
+# PHASE 18: final warm gyroid drift
+# A last dramatic but legible passage in the original spirit before
+# resolving back to the opening layout.
+# ================================================================
+
+xmin 3000 3300 -18.0 smooth
+xmax 3000 3300 18.0 smooth
+ymin 3000 3300 -10.125 smooth
+ymax 3000 3300 10.125 smooth
+
+tcur 3000 3150 4.1 smooth
+tcur 3150 3300 0.9 smooth
+
+cmin 3000 3160 -1.05 smooth
+cmax 3000 3160 1.20 smooth
+cmin 3160 3300 -0.78 smooth
+cmax 3160 3300 0.92 smooth
+
+cres 3000 3300 24 smooth
+
+xyrot 3000 3300 1300 smooth
+xtrot 3000 3300 1320 smooth
+xcrot 3000 3300 1350 smooth
+ytrot 3000 3300 1240 smooth
+ycrot 3000 3300 1288 smooth
+ctrot 3000 3300 1156 smooth
+
+
+# ================================================================
+# PHASE 19: exact opening layout returns
+# The rotations return to values equivalent to the original angles
+# modulo 360, avoiding an unnecessary reverse spin while matching the
+# visual layout of the first frame.
+# Opening layout:
+# xmin -4.0 / xmax 4.0 / ymin -2.25 / ymax 2.25
+# tcur -2.6 / cmin -1.0 / cmax 1.0 / cres 24
+# xy 10 / xt 18 / xc 32 / yt -14 / yc 8 / ct 4
+# ================================================================
+
+xmin 3300 3600 -4.0 smooth
+xmax 3300 3600 4.0 smooth
+ymin 3300 3600 -2.25 smooth
+ymax 3300 3600 2.25 smooth
+
+tcur 3300 3600 -2.6 smooth
+
+cmin 3300 3600 -1.0 smooth
+cmax 3300 3600 1.0 smooth
+
+cres 3300 3600 24 smooth
+
+xyrot 3300 3600 1450 smooth
+xtrot 3300 3600 1458 smooth
+xcrot 3300 3600 1472 smooth
+ytrot 3300 3600 1426 smooth
+ycrot 3300 3600 1448 smooth
+ctrot 3300 3600 1444 smooth

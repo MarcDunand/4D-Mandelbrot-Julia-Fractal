@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -181,6 +181,7 @@ class ViewerState:
     Tmin: float = -1.0
     Tmax: float = 1.0
     Tres: int = 30
+    Tcur: float = 0.0
 
     Cmin: float = -1.0
     Cmax: float = 1.0
@@ -324,8 +325,14 @@ class WHCTEngine:
             return s.Tmin
         return s.Tmin + (s.Tmax - s.Tmin) * (s.current_frame / s.Tres)
 
-    def render_current_base_images(self):
-        t = self.current_t()
+    def render_at_t(self, t: float):
+        """
+        Render a frame at an explicit T-coordinate.
+
+        This is separate from current_t() because compiled animations move through
+        4D parameter space directly. In that mode, output frame number is not
+        the same thing as the current T slice.
+        """
         index_img, lut_img = self.generate_frame(t)
 
         base_bgr = self.packed_int_to_bgr(index_img)
@@ -335,6 +342,75 @@ class WHCTEngine:
         self.last_base_bgr = base_bgr
         self.last_lut_bgr = lut_bgr
         return base_bgr, lut_bgr
+
+    def render_current_base_images(self):
+        return self.render_at_t(self.current_t())
+
+
+def _coerce_state(state_like: Union[ViewerState, Dict[str, object]]) -> ViewerState:
+    if isinstance(state_like, ViewerState):
+        return state_like
+
+    state = ViewerState()
+    for key, value in state_like.items():
+        if not hasattr(state, key):
+            raise ValueError(f"Unknown ViewerState field: {key}")
+        setattr(state, key, value)
+    return state
+
+
+def generateFromCode(
+    init_state: Union[ViewerState, Dict[str, object]],
+    frame_states: List[Union[ViewerState, Dict[str, object]]],
+    output_path: str = "./videoOutput/frac_cmded.mp4",
+    mapping_path: Optional[str] = None,
+    fps: int = 30,
+    display_every: int = 0,
+):
+    """
+    Render a compiled WHCS animation.
+
+    frame_states is a list of complete per-output-frame ViewerState values.
+    Unlike the normal UI animation, compiled rendering uses state.Tcur directly.
+    That means Tres controls the viewer's T resolution, not the video length.
+    """
+    if not frame_states:
+        raise ValueError("generateFromCode received no frame states to render.")
+
+    engine = WHCTEngine(mapping_path=mapping_path)
+    engine.state = _coerce_state(init_state)
+    engine.state.snapping_enabled = False
+
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+
+    s0 = engine.state
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    video_writer = cv2.VideoWriter(output_path, fourcc, fps, (int(s0.Xres), int(s0.Yres)))
+    if not video_writer.isOpened():
+        raise RuntimeError(f"Could not open video writer for: {output_path}")
+
+    try:
+        for frame_idx, state_like in enumerate(tqdm(frame_states, desc="Rendering compiled animation")):
+            state = _coerce_state(state_like)
+            state.snapping_enabled = False
+            engine.state = state
+
+            base_bgr, lut_bgr = engine.render_at_t(float(state.Tcur))
+            frame_bgr = lut_bgr if lut_bgr is not None else base_bgr
+            video_writer.write(frame_bgr)
+
+            if display_every and display_every > 0 and frame_idx % display_every == 0:
+                cv2.imshow("Compiled WHCS Animation", frame_bgr)
+                key = cv2.waitKey(1) & 0xFF
+                if key == 27:
+                    print("Display interrupted with ESC. Stopping render early.")
+                    break
+    finally:
+        video_writer.release()
+        if display_every and display_every > 0:
+            cv2.destroyWindow("Compiled WHCS Animation")
+
+    return output_path
 
 
 # -----------------------------------------------------------------------------

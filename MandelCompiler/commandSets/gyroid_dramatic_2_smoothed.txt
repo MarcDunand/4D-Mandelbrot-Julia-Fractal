@@ -1,0 +1,333 @@
+# ------------------------------------------------------------------
+# 4D gyroid dramatic showcase - 90 second version, mostly smoothed
+# ~90 seconds at 30 fps = 2700 frames
+# 16:9 landscape, 896 x 504
+#
+# This version keeps the structure of gyroid_dramatic_2.txt, but uses
+# smoothstep interpolation for most camera / bounds / color / rotation moves.
+# A few tcur-only scans remain linear where a harder mechanical sweep seems useful.
+# ------------------------------------------------------------------
+
+# Initial state
+indicator 4D_gyroid_shell
+
+xmin -8.0
+xmax 8.0
+ymin -4.5
+ymax 4.5
+
+tmin -8.0
+tmax 8.0
+tcur -3.2
+
+cmin -0.9
+cmax 0.9
+
+xres 896
+yres 504
+tres 2700
+cres 24
+
+xyrot 10
+xtrot 18
+xcrot 32
+ytrot -14
+ycrot 8
+ctrot 4
+
+precision 30
+
+
+# ================================================================
+# PHASE 1: broad arrival / more zoomed out than v2
+# ================================================================
+
+xmin 0 220 -9.8 smooth
+xmax 0 220 9.8 smooth
+ymin 0 220 -5.5125 smooth
+ymax 0 220 5.5125 smooth
+
+tcur 0 220 -1.4 smooth
+
+cmin 0 220 -0.75 smooth
+cmax 0 220 0.95 smooth
+
+xyrot 0 220 48 smooth
+xtrot 0 220 46 smooth
+xcrot 0 220 82 smooth
+ytrot 0 220 28 smooth
+ycrot 0 220 54 smooth
+ctrot 0 220 24 smooth
+
+
+# ================================================================
+# PHASE 2: first tightening burst, but not microscopic
+# ================================================================
+
+xmin 220 340 -3.2 smooth
+xmax 220 340 3.8 smooth
+ymin 220 340 -1.96875 smooth
+ymax 220 340 1.96875 smooth
+
+tcur 220 285 2.9 smooth
+tcur 285 340 1.8 smooth
+
+cmin 220 275 -0.20 smooth
+cmax 220 275 0.26 smooth
+cmin 275 340 -0.62 smooth
+cmax 275 340 0.68 smooth
+
+xyrot 220 340 118 smooth
+xtrot 220 340 148 smooth
+xcrot 220 340 176 smooth
+ytrot 220 340 108 smooth
+ycrot 220 340 136 smooth
+ctrot 220 340 92 smooth
+
+
+# ================================================================
+# PHASE 3: only-time section, slow repeating patterns
+# No X/Y/C/rotation changes here after frame 340
+# Smooth because this should feel like breathing rather than scanning.
+# ================================================================
+
+tcur 340 580 -2.2 smooth
+
+
+# ================================================================
+# PHASE 4: sudden outward snap / medium-wide reveal
+# Still smoothed, but short enough to retain the feeling of a snap.
+# ================================================================
+
+xmin 580 680 -14.0 smooth
+xmax 580 680 14.0 smooth
+ymin 580 680 -7.875 smooth
+ymax 580 680 7.875 smooth
+
+tcur 580 680 -4.8 smooth
+
+cmin 580 640 -1.35 smooth
+cmax 580 640 1.55 smooth
+cmin 640 680 -0.75 smooth
+cmax 640 680 0.85 smooth
+
+xyrot 580 680 188 smooth
+xtrot 580 680 232 smooth
+xcrot 580 680 262 smooth
+ytrot 580 680 190 smooth
+ycrot 580 680 224 smooth
+ctrot 580 680 172 smooth
+
+
+# ================================================================
+# PHASE 5: long extreme zoom peak
+# X span = 240
+# Smoothed entrance into the massive-scale view.
+# ================================================================
+
+xmin 680 780 -120.0 smooth
+xmax 680 780 120.0 smooth
+ymin 680 780 -67.5 smooth
+ymax 680 780 67.5 smooth
+
+cmin 680 780 -0.55 smooth
+cmax 680 780 0.65 smooth
+
+xyrot 680 780 246 smooth
+xtrot 680 780 310 smooth
+xcrot 680 780 338 smooth
+ytrot 680 780 260 smooth
+ycrot 680 780 296 smooth
+ctrot 680 780 238 smooth
+
+# Only tcur changes for a long stretch while massively zoomed out.
+# Kept linear so the repeated pattern passes by at a clean, even rate.
+tcur 780 1080 -1.6 linear
+
+
+# ================================================================
+# PHASE 6: fast only-time shock while still near the huge scale
+# No other values change in this interval.
+# Kept linear to preserve the hard acceleration / scan feeling.
+# ================================================================
+
+tcur 1080 1160 6.2 linear
+
+
+# ================================================================
+# PHASE 7: dive back into structure, wider than v2 closeups
+# ================================================================
+
+xmin 1160 1300 -5.2 smooth
+xmax 1160 1300 5.6 smooth
+ymin 1160 1300 -3.0375 smooth
+ymax 1160 1300 3.0375 smooth
+
+tcur 1160 1240 3.0 smooth
+tcur 1240 1300 1.2 smooth
+
+cmin 1160 1210 -0.14 smooth
+cmax 1160 1210 0.18 smooth
+cmin 1210 1300 -0.45 smooth
+cmax 1210 1300 0.52 smooth
+
+xyrot 1160 1300 360 smooth
+xtrot 1160 1300 420 smooth
+xcrot 1160 1300 480 smooth
+ytrot 1160 1300 345 smooth
+ycrot 1160 1300 400 smooth
+ctrot 1160 1300 318 smooth
+
+
+# ================================================================
+# PHASE 8: medium drift / dynamic but not cramped
+# ================================================================
+
+xmin 1300 1460 -12.5 smooth
+xmax 1300 1460 9.5 smooth
+ymin 1300 1460 -4.7 smooth
+ymax 1300 1460 7.675 smooth
+
+tcur 1300 1370 -1.8 smooth
+tcur 1370 1460 -4.9 smooth
+
+cmin 1300 1360 -0.95 smooth
+cmax 1300 1360 1.15 smooth
+cmin 1360 1460 -0.35 smooth
+cmax 1360 1460 0.45 smooth
+
+xyrot 1300 1460 470 smooth
+xtrot 1300 1460 540 smooth
+xcrot 1300 1460 610 smooth
+ytrot 1300 1460 455 smooth
+ycrot 1300 1460 505 smooth
+ctrot 1300 1460 430 smooth
+
+
+# ================================================================
+# PHASE 9: second only-time passage, medium-fast
+# No X/Y/C/rotation changes.
+# Kept linear because a steady temporal sweep makes the repetition clearer.
+# ================================================================
+
+tcur 1460 1640 4.4 linear
+
+
+# ================================================================
+# PHASE 10: second massive zoom peak
+# X span = 260
+# Violent and faster than the first, but smoothed to avoid brittle jumps.
+# ================================================================
+
+xmin 1640 1740 -130.0 smooth
+xmax 1640 1740 130.0 smooth
+ymin 1640 1740 -73.125 smooth
+ymax 1640 1740 73.125 smooth
+
+tcur 1640 1700 -5.8 smooth
+tcur 1700 1740 -2.5 smooth
+
+cmin 1640 1700 -1.8 smooth
+cmax 1640 1700 2.1 smooth
+cmin 1700 1740 -0.42 smooth
+cmax 1700 1740 0.52 smooth
+
+xyrot 1640 1740 620 smooth
+xtrot 1640 1740 720 smooth
+xcrot 1640 1740 810 smooth
+ytrot 1640 1740 600 smooth
+ycrot 1640 1740 690 smooth
+ctrot 1640 1740 565 smooth
+
+
+# ================================================================
+# PHASE 11: very fast only-time scan at huge scale
+# No other values change here.
+# Kept linear to read as an intentional high-speed temporal slice scan.
+# ================================================================
+
+tcur 1740 1840 7.5 linear
+
+
+# ================================================================
+# PHASE 12: collapse inward, but stay legible
+# ================================================================
+
+xmin 1840 1980 -7.8 smooth
+xmax 1840 1980 6.2 smooth
+ymin 1840 1980 -3.25 smooth
+ymax 1840 1980 4.625 smooth
+
+tcur 1840 1910 2.2 smooth
+tcur 1910 1980 0.6 smooth
+
+cmin 1840 1900 -0.08 smooth
+cmax 1840 1900 0.12 smooth
+cmin 1900 1980 -0.32 smooth
+cmax 1900 1980 0.38 smooth
+
+xyrot 1840 1980 760 smooth
+xtrot 1840 1980 835 smooth
+xcrot 1840 1980 910 smooth
+ytrot 1840 1980 720 smooth
+ycrot 1840 1980 790 smooth
+ctrot 1840 1980 665 smooth
+
+
+# ================================================================
+# PHASE 13: slow only-time breathing pattern
+# No other values change.
+# Smooth to make this feel like a held, slow pulse.
+# ================================================================
+
+tcur 1980 2220 -1.1 smooth
+
+
+# ================================================================
+# PHASE 14: penultimate broad bloom
+# ================================================================
+
+xmin 2220 2380 -18.0 smooth
+xmax 2220 2380 18.0 smooth
+ymin 2220 2380 -10.125 smooth
+ymax 2220 2380 10.125 smooth
+
+tcur 2220 2300 3.6 smooth
+tcur 2300 2380 1.4 smooth
+
+cmin 2220 2290 -1.05 smooth
+cmax 2220 2290 1.25 smooth
+cmin 2290 2380 -0.65 smooth
+cmax 2290 2380 0.82 smooth
+
+xyrot 2220 2380 880 smooth
+xtrot 2220 2380 935 smooth
+xcrot 2220 2380 1010 smooth
+ytrot 2220 2380 840 smooth
+ycrot 2220 2380 900 smooth
+ctrot 2220 2380 760 smooth
+
+
+# ================================================================
+# PHASE 15: final drift / calm resolution
+# ================================================================
+
+xmin 2380 2700 -10.0 smooth
+xmax 2380 2700 10.0 smooth
+ymin 2380 2700 -5.625 smooth
+ymax 2380 2700 5.625 smooth
+
+tcur 2380 2520 0.8 smooth
+tcur 2520 2700 -0.2 smooth
+
+cmin 2380 2520 -0.72 smooth
+cmax 2380 2520 0.84 smooth
+cmin 2520 2700 -0.9 smooth
+cmax 2520 2700 1.0 smooth
+
+xyrot 2380 2700 950 smooth
+xtrot 2380 2700 985 smooth
+xcrot 2380 2700 1040 smooth
+ytrot 2380 2700 900 smooth
+ycrot 2380 2700 945 smooth
+ctrot 2380 2700 820 smooth

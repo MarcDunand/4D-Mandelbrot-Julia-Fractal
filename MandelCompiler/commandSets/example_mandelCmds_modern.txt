@@ -1,0 +1,37 @@
+# Initial values
+indicator julia_mandelbrot
+xmin -1
+xmax 1
+ymin -1
+ymax 1
+tmin -1
+tmax 1
+tcur 0
+cmin -1
+cmax 1
+xres 500
+yres 500
+tres 30
+cres 24
+xyrot 0
+xtrot 0
+xcrot 0
+ytrot 0
+ycrot 0
+ctrot 0
+precision 30
+
+# Commands use: VT FI FF VF
+xmin 10 70 -2.0
+xmin 70 80 0
+xmin 80 200 0.9
+xmax 80 200 0.95
+
+cmin 10 50 -5
+cmax 60 190 5
+
+tcur 30 120 0.75
+tcur 120 200 -0.25
+
+# Indicator changes are hard cuts on FI.
+indicator 150 150 4D_gyroid_shell
