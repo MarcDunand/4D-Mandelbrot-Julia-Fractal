@@ -33,33 +33,154 @@ of those navigations.
 
 ------------------------------------------------------------------------
 
-## Setup (Windows)
+## Setup on Windows with NVIDIA GPU
 
-Clone the repository and enter it:
+This project uses PyTorch with CUDA for GPU acceleration. Do **not** install `torch` from the normal `requirements.txt` flow, because that can install the CPU-only version of PyTorch.
 
-``` powershell
-git clone https://github.com/MarcDunand/4D-Mandelbrot-Julia-Fractal
+### 1. Clone the repo
+
+```powershell
+git clone <your-repo-url>
 cd 4D-Mandelbrot-Julia-Fractal
 ```
 
-Create and activate a virtual environment:
+### 2. Create a virtual environment
 
-``` powershell
-py -3.11 -m venv venv
-.\venv\Scripts\Activate.ps1
+Use Python 3.11 explicitly:
+
+```powershell
+& "C:\Program Files\Python311\python.exe" -m venv WHCT_env
+```
+
+Activate the environment:
+
+```powershell
+.\WHCT_env\Scripts\activate
+```
+
+If PowerShell blocks activation, run this once in the same PowerShell window:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\WHCT_env\Scripts\activate
+```
+
+After activation, the terminal prompt should start with something like:
+
+```text
+(WHCT_env) PS C:\Users\Owner\Documents\dev\4D-Mandelbrot-Julia-Fractal>
+```
+
+Confirm that Python is coming from the virtual environment:
+
+```powershell
+python -c "import sys; print(sys.executable)"
+```
+
+Expected output should point somewhere inside the project folder, for example:
+
+```text
+C:\Users\Owner\Documents\dev\4D-Mandelbrot-Julia-Fractal\WHCT_env\Scripts\python.exe
+```
+
+### 3. Upgrade pip
+
+```powershell
 python -m pip install --upgrade pip
 ```
 
-Install dependencies:
+### 4. Install CUDA PyTorch first
 
-``` powershell
-pip install -r requirements.txt
+For an NVIDIA GPU, install the CUDA 12.8 PyTorch build:
+
+```powershell
+python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 ```
 
-(Optional but recommended) Run the environment diagnostic script:
+Verify that CUDA is working:
 
-``` powershell
-.\doctor.ps1
+```powershell
+python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.version.cuda); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'No GPU')"
+```
+
+Expected output should include:
+
+```text
++cu128
+True
+NVIDIA ...
+```
+
+If the output says `+cpu`, `False`, or `None`, then PyTorch was installed incorrectly for GPU use.
+
+### 5. Install the rest of the dependencies
+
+Install the rest of the project requirements:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+After installing requirements, check CUDA again:
+
+```powershell
+python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.version.cuda)"
+```
+
+If CUDA was accidentally replaced by CPU PyTorch, reinstall CUDA PyTorch:
+
+```powershell
+python -m pip install --no-cache-dir --force-reinstall torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+```
+
+Then verify again:
+
+```powershell
+python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.version.cuda); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'No GPU')"
+```
+
+### 6. Run the project
+
+```powershell
+python .\WHCS_PySide6.py
+```
+
+The app should report that it is using `cuda` rather than `cpu`.
+
+## Important dependency note
+
+Do **not** include normal `torch`, `torchvision`, or `torchaudio` lines in `requirements.txt` unless you specifically want the CPU build.
+
+Remove lines like these from `requirements.txt`:
+
+```text
+torch==2.10.0
+torchvision==...
+torchaudio==...
+```
+
+Instead, install CUDA PyTorch separately before installing the rest of the requirements.
+
+A useful comment to keep near the top of `requirements.txt` is:
+
+```text
+# Install CUDA PyTorch separately before this file:
+# python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+#
+# Do not list torch/torchvision/torchaudio here unless you know you want the CPU build.
+```
+
+## GitHub note
+
+Do **not** commit the virtual environment folder to GitHub. Add these lines to `.gitignore`:
+
+```gitignore
+WHCT_env/
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
 ```
 
 ------------------------------------------------------------------------
