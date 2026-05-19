@@ -3,6 +3,23 @@ debug.log
 coolOutputs
 MandelCompiler/outputs/*
 
+# Python virtual environments
+WHCT_env/
+.venv/
+venv/
+env/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
 *.pt
 *.npz
 
