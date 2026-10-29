@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -19,7 +20,7 @@ from PySide6.QtWidgets import (
 
 from .canvas import Canvas
 from .colormap import ColorMapper
-from .engine import FrameCache, RenderWorker, Renderer
+from .engine import EngineSwitch, FrameCache, RenderWorker, Renderer
 from .indicators import INDICATORS
 from .state import MAX_C_RES, ViewState, W, H, C, T
 
@@ -30,7 +31,8 @@ DIGIT_DIMS = {Qt.Key_1: W, Qt.Key_2: H, Qt.Key_3: C, Qt.Key_4: T}
 
 @dataclass
 class Settings:
-    dynamic_downscale: bool = True
+    use_shader: bool = True          # render in an OpenGL shader when the shape has one
+    dynamic_downscale: bool = False
     preview_factor: int = 3          # preview renders at 1/3 resolution...
     res_mode: str = "window"         # "window" follows the canvas size; "custom" uses custom_w/h
     quality: int = 100               # percent of the canvas size (logical pixels), in window mode
@@ -48,7 +50,7 @@ class MainWindow(QMainWindow):
         self.resize(1400, 900)
         self.settings = Settings()
         self.state = ViewState()
-        self.renderer = Renderer()
+        self.renderer = EngineSwitch(Renderer(), _make_gpu_renderer())
         self.cache = FrameCache(self.settings.cache_mb)
         self.worker = RenderWorker(self.renderer)
         self.worker.finished.connect(self._on_render_finished)
@@ -91,6 +93,8 @@ class MainWindow(QMainWindow):
 
         bar = QWidget(central)
         bar.setObjectName("bar")
+        bar.setAttribute(Qt.WA_StyledBackground)  # opaque when it floats over the image in full screen
+        self.bar, self._central_lay = bar, lay
         b = QHBoxLayout(bar)
         b.setContentsMargins(10, 6, 10, 6)
         b.setSpacing(8)
@@ -103,10 +107,17 @@ class MainWindow(QMainWindow):
         self.bounce_cb = QCheckBox("Bounce", bar)
         self.bounce_cb.setToolTip("Play forward then backward: 29, 30, 31, 30, 29, ..., 2, 1, 2, 3, ...")
         self.frame_slider = QSlider(Qt.Horizontal, bar)
-        self.frame_slider.setMinimumWidth(220)
+        self.frame_slider.setMinimumWidth(120)
         self.frame_slider.valueChanged.connect(self._on_slider)
+        # "frame [26] / [31]   T +0.000": both numbers are editable; the second sets the T resolution.
+        self.frame_spin = self._counter_spin(bar, "Current frame")
+        self.frame_spin.valueChanged.connect(lambda v: self.goto_frame(v - 1))
+        self.frames_spin = self._counter_spin(bar, "Number of T frames")
+        self.frames_spin.setRange(1, 100000)
+        self.frames_spin.valueChanged.connect(self.set_t_frames)
+        self.frames_spin.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.frame_label = QLabel(bar)
-        self.frame_label.setFixedWidth(170)
+        self.frame_label.setFixedWidth(64)
 
         self.shape_combo = QComboBox(bar)
         self.shape_combo.addItems(list(INDICATORS))
@@ -115,11 +126,16 @@ class MainWindow(QMainWindow):
         self.map_combo.addItems(self.mapper.names)
         self.map_combo.setCurrentText(self.mapper.name)
         self.map_combo.currentTextChanged.connect(self._on_mapping)
+        for combo in (self.shape_combo, self.map_combo):
+            # As wide as the current name, not the longest one, so the bar has room; the list stays full width.
+            combo.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            combo.view().setMinimumWidth(combo.view().sizeHintForColumn(0) + 24)
         self.prec_spin = QSpinBox(bar)
         self.prec_spin.setRange(1, 100000)
         self.prec_spin.setValue(self.state.precision)
         self.prec_spin.setKeyboardTracking(False)
         self.prec_spin.valueChanged.connect(self._on_precision)
+        self.prec_spin.editingFinished.connect(self.canvas.setFocus)
 
         self.save_btn = QToolButton(bar)
         self.save_btn.setText("Save")
@@ -141,11 +157,21 @@ class MainWindow(QMainWindow):
         self.status = QLabel(bar)
         self.status.setObjectName("status")
         self.status.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)  # long text must not widen the window
+        self.status.setMinimumWidth(self.status.fontMetrics().horizontalAdvance("Shader · 8888 ms · cached 888/888") + 8)
 
         for wdg in (self.play_btn, self.loop_cb, self.bounce_cb):
             b.addWidget(wdg)
         b.addWidget(self.frame_slider, 2)
-        b.addWidget(self.frame_label)
+        counter = QHBoxLayout()
+        counter.setSpacing(2)
+        counter.addWidget(QLabel("frame", bar))
+        counter.addSpacing(2)
+        counter.addWidget(self.frame_spin)
+        counter.addWidget(QLabel("/", bar))
+        counter.addWidget(self.frames_spin)
+        counter.addSpacing(8)
+        counter.addWidget(self.frame_label)
+        b.addLayout(counter)
         b.addSpacing(10)
         b.addWidget(QLabel("Shape", bar))
         b.addWidget(self.shape_combo)
@@ -163,6 +189,24 @@ class MainWindow(QMainWindow):
         lay.addWidget(bar)
         self.setCentralWidget(central)
         self._sync_slider()
+
+    def _counter_spin(self, parent, tip: str) -> QSpinBox:
+        """A number that reads like text and shows a field outline on hover; click to type."""
+        sb = QSpinBox(parent)
+        sb.setButtonSymbols(QAbstractSpinBox.NoButtons)
+        sb.setFrame(False)
+        sb.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        sb.setKeyboardTracking(False)  # apply on Enter or focus out, not on every digit
+        sb.setToolTip(tip + " (click to type)")
+        # Styled on the inner line edit: a QSpinBox style sheet squeezes the text area to 1 px.
+        sb.lineEdit().setStyleSheet(
+            "QLineEdit { background: transparent; color: #E7E9EE; border: 1px solid transparent;"
+            " border-radius: 3px; padding: 0 1px; }"
+            " QLineEdit:hover { border-color: #4E5563; }"
+            " QLineEdit:focus { background: #0E1013; border-color: #3D5A99; }"
+        )
+        sb.editingFinished.connect(self.canvas.setFocus)  # hand Space and the 1-4 keys back
+        return sb
 
     # ------------------------------------------------------------------ geometry
     def render_size(self):
@@ -290,7 +334,8 @@ class MainWindow(QMainWindow):
         prec = st.precision
         if kind == "preview":
             pts = res[W] * res[H] * res[C]
-            f = max(self.settings.preview_factor, int(np.ceil(np.sqrt(pts / self.renderer.preview_points))))
+            preview_points = self.renderer.engine_for(st.indicator, res).preview_points
+            f = max(self.settings.preview_factor, int(np.ceil(np.sqrt(pts / preview_points))))
             res[W] = max(8, res[W] // f)
             res[H] = max(8, res[H] // f)
             prec = max(8, prec // 2)
@@ -396,6 +441,20 @@ class MainWindow(QMainWindow):
         self._sync_slider()
         self._frame_changed()
 
+    def goto_frame(self, f: int):
+        f = int(np.clip(f, 0, self.state.res[T] - 1))
+        if f != self.state.frame:
+            self.state.frame = f
+            self._sync_slider()
+            self._frame_changed()
+
+    def set_t_frames(self, n: int):
+        if n != self.state.res[T]:
+            self.state.set_t_res(n)
+            self._sync_slider()
+            self.canvas.update()
+            self.schedule_render()
+
     def _on_slider(self, v: int):
         if v != self.state.frame:
             self.state.frame = v
@@ -417,16 +476,26 @@ class MainWindow(QMainWindow):
 
     def _update_frame_label(self):
         st = self.state
-        self.frame_label.setText(f"frame {st.frame + 1}/{st.res[T]}   T {st.t_value():+.3f}")
+        width = self.frame_spin.fontMetrics().horizontalAdvance("8" * len(str(st.res[T]))) + 10  # fits the digits
+        for sb, v, hi in ((self.frames_spin, st.res[T], 100000), (self.frame_spin, st.frame + 1, st.res[T])):
+            sb.blockSignals(True)
+            sb.setRange(1, hi)
+            sb.setValue(v)
+            sb.setFixedWidth(width)
+            sb.blockSignals(False)
+        self.frame_label.setText(f"T {st.t_value():+.3f}")
 
     def _update_status(self):
         st = self.state
         n = len(self.cache.frames) if self.cache.sig == st.signature() else 0
         mb = self.cache.nbytes / 2 ** 20
-        dev = self.renderer.device_name if self.renderer.device.type == "cuda" else "CPU"
-        self.status.setText(
-            f"{dev} · {self._last_ms:.0f} ms · {st.res[W]}×{st.res[H]}×{st.res[C]}×{st.res[T]}"
-            f" · cache {n}/{st.res[T]} frames, {mb:.0f}/{self.settings.cache_mb} MB"
+        engine = self.renderer.label(st.indicator, st.res)
+        # Short, so it fits the bar; the tooltip has the details.
+        self.status.setText(f"{engine.split(' · ')[0]} · {self._last_ms:.0f} ms · cached {n}/{st.res[T]}")
+        self.status.setToolTip(
+            f"Engine: {engine}\nLast render: {self._last_ms:.0f} ms\n"
+            f"Samples W×H×C×T: {st.res[W]}×{st.res[H]}×{st.res[C]}×{st.res[T]}\n"
+            f"Frame cache: {n}/{st.res[T]} frames, {mb:.0f}/{self.settings.cache_mb} MB"
         )
 
     # ------------------------------------------------------------------ bar controls
@@ -462,7 +531,7 @@ class MainWindow(QMainWindow):
             self.held_dims.add(DIGIT_DIMS[key])
             return True
         if ev.isAutoRepeat() and key not in (Qt.Key_Left, Qt.Key_Right, Qt.Key_Z, Qt.Key_Y):
-            return key in (Qt.Key_Space, Qt.Key_P, Qt.Key_V, Qt.Key_Home)
+            return key in (Qt.Key_Space, Qt.Key_P, Qt.Key_V, Qt.Key_F, Qt.Key_Home)
         if key == Qt.Key_Space:
             self.toggle_play()
         elif key == Qt.Key_P and not ctrl:
@@ -472,6 +541,8 @@ class MainWindow(QMainWindow):
             self.values_on = not self.values_on
             self.canvas.refresh_value_boxes()
             self.canvas.update()
+        elif key == Qt.Key_F and not ctrl:
+            self.toggle_fullscreen()
         elif key == Qt.Key_Home:
             self.reset_view()
         elif key == Qt.Key_Left:
@@ -479,7 +550,10 @@ class MainWindow(QMainWindow):
         elif key == Qt.Key_Right:
             self.step_frame(1)
         elif key == Qt.Key_Escape:
-            self.canvas.collapse_widgets()
+            if self.canvas.rot.expanded or self.canvas.scl.expanded or not self.isFullScreen():
+                self.canvas.collapse_widgets()
+            else:
+                self.toggle_fullscreen()
         elif ctrl and key == Qt.Key_Z:
             self.redo() if mods & Qt.ShiftModifier else self.undo()
         elif ctrl and key == Qt.Key_Y:
@@ -488,6 +562,40 @@ class MainWindow(QMainWindow):
             return False
         return True
 
+    def toggle_fullscreen(self):
+        if self.isFullScreen():
+            self.showMaximized() if getattr(self, "_was_maximized", False) else self.showNormal()
+        else:
+            self._was_maximized = self.isMaximized()
+            self.showFullScreen()
+
+    def _apply_fullscreen_layout(self):
+        """Full screen: tiny widget squares, and the bar floats over the image, shown on hover."""
+        fs = self.isFullScreen()
+        if fs == self.canvas.compact:
+            return
+        self.canvas.set_compact(fs)
+        if fs:
+            self._central_lay.removeWidget(self.bar)
+            self.bar.hide()
+        else:
+            self._central_lay.addWidget(self.bar)
+            self.bar.show()
+
+    def canvas_hover(self, pos):
+        """Called on every mouse move over the canvas (not while dragging)."""
+        if not self.canvas.compact:
+            return
+        h = self.canvas.height()
+        if not self.bar.isVisible():
+            if pos.y() >= h - 12:  # mouse at the bottom edge
+                bh = self.bar.sizeHint().height()
+                self.bar.setGeometry(0, self.bar.parentWidget().height() - bh, self.bar.parentWidget().width(), bh)
+                self.bar.raise_()
+                self.bar.show()
+        elif pos.y() < h - self.bar.height() and not self.bar.isAncestorOf(QApplication.focusWidget()):
+            self.bar.hide()  # moved back up onto the image (kept while typing in a bar field)
+
     def focusOutEvent(self, e):
         self.held_dims.clear()
         super().focusOutEvent(e)
@@ -495,6 +603,8 @@ class MainWindow(QMainWindow):
     def changeEvent(self, e):
         if e.type() == QEvent.ActivationChange and not self.isActiveWindow():
             self.held_dims.clear()
+        if e.type() == QEvent.WindowStateChange:
+            self._apply_fullscreen_layout()
         super().changeEvent(e)
 
     # ------------------------------------------------------------------ options
@@ -506,6 +616,9 @@ class MainWindow(QMainWindow):
         old = self.settings
         self.settings = new
         self.cache.set_budget(new.cache_mb)
+        if new.use_shader != old.use_shader:
+            self.renderer.use_shader = new.use_shader
+            self.cache.clear()  # re-render with the other engine
         st = self.state
         st.res[C] = int(np.clip(c_res, 1, MAX_C_RES))
         st.set_t_res(t_res)
@@ -560,6 +673,7 @@ class MainWindow(QMainWindow):
         if self.playing:
             self.toggle_play()
         self.settings = new_settings
+        self.renderer.use_shader = new_settings.use_shader
         self.cache.set_budget(new_settings.cache_mb)
         self.cache.clear()
         mapping = data.get("color_mapping")
@@ -678,7 +792,18 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, e):
         self.worker.stop()
+        self.renderer.stop()
         super().closeEvent(e)
+
+
+def _make_gpu_renderer():
+    """The shader engine, or None (logged) if this machine can't run it."""
+    try:
+        from .gpu import GpuRenderer
+        return GpuRenderer()
+    except Exception as exc:
+        print(f"[whct shader] unavailable, using PyTorch: {exc}", file=sys.stderr)
+        return None
 
 
 class OptionsDialog(QDialog):
@@ -692,6 +817,18 @@ class OptionsDialog(QDialog):
 
         perf = QGroupBox("Speed", self)
         pf = QFormLayout(perf)
+        self.shader = QCheckBox("Use GPU shader (faster)", perf)
+        self.shader.setChecked(s.use_shader)
+        gpu = win.renderer.gpu
+        if gpu is None:
+            self.shader.setEnabled(False)
+            self.shader.setToolTip("OpenGL 3.3 is not available here, so WHCT renders with PyTorch")
+        elif not gpu.supports(st.indicator, st.res):
+            self.shader.setEnabled(False)
+            self.shader.setToolTip("The current shape or resolution has no shader version; it renders with PyTorch")
+        else:
+            self.shader.setToolTip(f"Off: render with PyTorch on {win.renderer.torch.device_name}")
+        pf.addRow(self.shader)
         self.dyn = QCheckBox("Dynamic downscale (lower resolution and precision while you move)", perf)
         self.dyn.setChecked(s.dynamic_downscale)
         pf.addRow(self.dyn)
@@ -793,6 +930,7 @@ class OptionsDialog(QDialog):
 
     def _apply(self):
         s = Settings(
+            use_shader=self.shader.isChecked(),
             dynamic_downscale=self.dyn.isChecked(),
             preview_factor=self.win.settings.preview_factor,
             res_mode="window" if self.mode_window.isChecked() else "custom",

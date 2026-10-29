@@ -3,7 +3,8 @@
 On the image: left-drag pans W/H, right-drag pans T (horizontal) and C (vertical),
 scroll zooms W and H about the mouse (hold 1-4 to pick W, H, C, T instead).
 Widgets sit side by side in the top-right corner. Click one to expand it; it stays
-expanded until you click somewhere else.
+expanded until you click somewhere else. In full screen (compact) the collapsed
+widgets shrink to tiny icon squares.
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QPushButton
 
 from .colormap import bit_positions
-from .gizmos import MATH_COLORS, RotationGizmo, ScaleGizmo, dim_panel, paint_panel, plane_name
+from .gizmos import MATH_COLORS, RotationGizmo, ScaleGizmo, dim_panel, paint_mini, paint_panel, plane_name
 from .state import DISPLAY_AXES, MATH_AXES, W, H, C, T
 from .valuefields import ValueBox
 
@@ -52,6 +53,7 @@ class Canvas(QOpenGLWidget):
         self.probe_on = False
         self._mouse: Optional[QPointF] = None
         self.boxes: Dict[str, ValueBox] = {}
+        self.compact = False  # full screen: collapsed widgets are tiny squares
 
     # ----- image -----
     def set_image(self, rgb: np.ndarray, index: np.ndarray) -> None:
@@ -86,7 +88,7 @@ class Canvas(QOpenGLWidget):
         margin = 12.0
         x_right = self.width() - margin
         for g in (self.scl, self.rot):  # scale on the far right, rotation to its left
-            s = side * 2 if g.expanded else side
+            s = side * 2 if g.expanded else (30.0 if self.compact else side)
             g.rect = QRectF(x_right - s, margin, s, s)
             x_right -= s + 8
         self.refresh_value_boxes()
@@ -96,6 +98,15 @@ class Canvas(QOpenGLWidget):
             self.rot.expanded = self.scl.expanded = False
             self.layout_widgets()
             self.update()
+
+    def set_compact(self, on: bool) -> None:
+        self.compact = on
+        self.rot.expanded = self.scl.expanded = False
+        self.layout_widgets()
+        self.update()
+
+    def _is_mini(self, g) -> bool:
+        return self.compact and not g.expanded
 
     def _expand(self, which: str) -> None:
         self.rot.expanded = which == "rot"
@@ -139,14 +150,19 @@ class Canvas(QOpenGLWidget):
         paint_panel(p, self.rot.rect, self.rot.expanded)
         paint_panel(p, self.scl.rect, self.scl.expanded)
 
-        p.beginNativePainting()
-        self._reset_gl()
-        self.rot.paint_gl(st, dpr, fb_h)
-        self._restore_gl(fb_w, fb_h)
-        p.endNativePainting()
-
-        self.rot.paint_labels(p, st)
-        self.scl.paint(p, st)
+        if self._is_mini(self.rot):
+            paint_mini(p, self.rot.rect, "rot")
+        else:
+            p.beginNativePainting()
+            self._reset_gl()
+            self.rot.paint_gl(st, dpr, fb_h)
+            self._restore_gl(fb_w, fb_h)
+            p.endNativePainting()
+            self.rot.paint_labels(p, st)
+        if self._is_mini(self.scl):
+            paint_mini(p, self.scl.rect, "scale")
+        else:
+            self.scl.paint(p, st)
         if self.ctl.values_on:
             for g in (self.rot, self.scl):
                 if g.expanded:
@@ -301,6 +317,13 @@ class Canvas(QOpenGLWidget):
         self._mouse = pos
         d = self._drag
         if d is None:
+            target = self._widget_at(pos)
+            g = {"rot": self.rot, "scale": self.scl}.get(target)
+            if g is not None and not g.expanded:
+                self.setCursor(Qt.PointingHandCursor)  # a click expands it
+            else:
+                self.unsetCursor()
+            self.ctl.canvas_hover(pos)
             if self.probe_on:
                 self.update()
             return

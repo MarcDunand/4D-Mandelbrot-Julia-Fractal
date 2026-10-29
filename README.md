@@ -177,12 +177,12 @@ Click a field to type in it, or press and drag left or right over it to change t
 
 ### Time, playback and saving
 
-- **Space** plays and pauses. **Loop** repeats the sweep. **Bounce** plays forward and back (…29, 30, 31, 30, 29…).
+- **Space** plays and pauses. The frame counter under the image (frame 26 / 31) is editable: type a frame number to jump there, or a new total to change the number of T frames. **Loop** repeats the sweep. **Bounce** plays forward and back (…29, 30, 31, 30, 29…).
 - Frames rendered at full quality are kept in memory, so the second time through plays smoothly. The cache has a size limit (Options) and is cleared whenever the view changes.
 - **Save** offers an MP4 video, a GIF, or the current time slice as a PNG.
 - **Configuration** saves or loads a small `.whct` file holding the current view, shape, resolution, color mapping and options, so you can return to an exact setup later.
 - **Options** covers:
-  - dynamic downscale
+  - the GPU shader engine (on by default) and dynamic downscale (off by default)
   - render resolution in all four dimensions: match the window, or a custom W×H with a linked-ratio toggle, plus the number of C slices and T frames
   - fit-to-window or actual-pixels display
   - the cache limit
@@ -205,6 +205,7 @@ Click a field to type in it, or press and drag left or right over it to change t
 | ← / → | previous / next frame |
 | P | probe: show the C column under the mouse |
 | V | values mode |
+| F | full screen: the widgets shrink to icons (click one to expand it) and the bar appears when the mouse reaches the bottom edge. F or Esc leaves |
 | Home | reset the view for the current shape |
 | Ctrl+Z / Ctrl+Y | undo / redo navigation |
 | Esc | collapse the widgets |
@@ -265,8 +266,8 @@ With fewer than 24 C slices, the slices are spread across the 24 color bits, so 
 
 ## Performance
 
-- **GPU.** Rendering uses PyTorch on CUDA when available and falls back to the CPU automatically. A GPU is far faster; on a laptop CPU a full-window frame can take seconds.
-- **Dynamic downscale** (Options, on by default). While you are moving, the viewer renders a quick preview at lower resolution and precision, then the full image once you stop.
+- **GPU shader.** Frames are computed in an OpenGL fragment shader on any GPU (Intel, AMD or NVIDIA), with one early exit per point. On an Intel Iris Xe laptop a 640×480×24 Julia-Mandelbrot frame takes about 7 ms, against about 1 s for PyTorch on the CPU. Without OpenGL 3.3, or with the shader turned off in Options, rendering falls back to PyTorch (CUDA when available, otherwise the CPU). `python tests/bench_render.py` times both engines; `python -m pytest tests` checks they agree.
+- **Dynamic downscale** (Options, off by default). While you are moving, the viewer renders a quick preview at lower resolution and precision, then the full image once you stop.
 - **Background rendering.** Rendering runs off the main thread, so the window stays responsive, and a newer request cancels an unfinished full render.
 - **Cost.** Each frame evaluates W × H × C points (a 1200×700 window with 24 slices is about 20 million). Any change that touches T invalidates every frame, so playback re-renders and re-caches the sweep.
 - **Memory.** Cached frames take 4 bytes per pixel. The cache limit (1 GB by default) stops long or high-resolution sweeps from filling memory.
@@ -300,8 +301,9 @@ A new command system built around the WHCT navigation model is planned to replac
 ```
 whct/                    The viewer (python -m whct)
   state.py               View state: center, spans, rotation; pan/scale/rotate math
-  indicators.py          The 4D shapes
-  engine.py              Rendering, background worker, frame cache
+  indicators.py          The 4D shapes (PyTorch and GLSL versions)
+  engine.py              PyTorch rendering, engine switch, background worker, frame cache
+  gpu.py                 Shader rendering (OpenGL fragment shader on its own thread)
   colormap.py            Color mappings and bit packing
   gizmos.py              Rotation widget (OpenGL) and scale widget
   valuefields.py         Editable number fields for values mode
@@ -353,7 +355,7 @@ The CUDA 12.8 build needs a recent NVIDIA driver. Don't add `torch` to `requirem
 
 **Only "raw bits" in the Color menu.** No mapping files have been generated yet. See step 3 of the quick start.
 
-**Everything is very slow.** You are probably on the CPU. Keep dynamic downscale on, lower the resolution in Options, or reduce C slices and precision.
+**Everything is very slow.** The status bar probably says "PyTorch · CPU": the shader engine is off or unavailable (see the console for why). Turn on the shader or dynamic downscale in Options, lower the resolution in Options, or reduce C slices and precision.
 
 **The widgets look wrong or the window is blank.** The viewer needs OpenGL 2.1 or newer. Update your graphics driver.
 

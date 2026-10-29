@@ -7,8 +7,10 @@ kept in a size-limited cache so playback can loop from memory.
 
 from __future__ import annotations
 
+import sys
 import threading
 import time
+import traceback
 from collections import OrderedDict
 from typing import Callable, Optional, Sequence
 
@@ -80,6 +82,43 @@ class Renderer:
         return out
 
 
+class EngineSwitch:
+    """Sends each render to the shader engine (gpu.py) when it can take it, else to PyTorch.
+
+    If the shader engine fails at runtime it is logged and switched off for the session.
+    """
+
+    def __init__(self, torch_renderer: Renderer, gpu=None):
+        self.torch = torch_renderer
+        self.gpu = gpu
+        self.use_shader = True
+
+    def engine_for(self, indicator: str, res: Sequence[int]):
+        if self.use_shader and self.gpu is not None and self.gpu.supports(indicator, res):
+            return self.gpu
+        return self.torch
+
+    def label(self, indicator: str, res: Sequence[int]) -> str:
+        if self.engine_for(indicator, res) is self.gpu:
+            return f"Shader · {self.gpu.device_name}"
+        return f"PyTorch · {self.torch.device_name}"
+
+    def render(self, st, frame, res, precision, cancel=lambda: False):
+        engine = self.engine_for(st.indicator, res)
+        if engine is self.gpu:
+            try:
+                return engine.render(st, frame, res, precision, cancel)
+            except Exception:
+                traceback.print_exc()
+                print("[whct shader] failed; using PyTorch from now on", file=sys.stderr)
+                self.gpu = None
+        return self.torch.render(st, frame, res, precision, cancel)
+
+    def stop(self) -> None:
+        if self.gpu is not None:
+            self.gpu.stop()
+
+
 class FrameCache:
     """Full-quality frames for the current view only, limited to a memory budget.
 
@@ -135,7 +174,7 @@ class RenderWorker(QObject):
 
     finished = Signal(object)
 
-    def __init__(self, renderer: Renderer):
+    def __init__(self, renderer):
         super().__init__()
         self.renderer = renderer
         self._cond = threading.Condition()

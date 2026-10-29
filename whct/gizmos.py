@@ -54,6 +54,29 @@ def paint_panel(p: QPainter, rect: QRectF, active: bool) -> None:
     p.restore()
 
 
+def paint_mini(p: QPainter, rect: QRectF, kind: str) -> None:
+    """Icon for a widget shrunk to a tiny square (full screen): a turn arrow or two joined squares."""
+    p.save()
+    p.setRenderHint(QPainter.Antialiasing)
+    p.setPen(QPen(MUTED, 1.6, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+    p.setBrush(Qt.NoBrush)
+    c, r = rect.center(), rect.width() * 0.26
+    if kind == "rot":
+        p.drawArc(QRectF(c.x() - r, c.y() - r, 2 * r, 2 * r), 90 * 16, 270 * 16)
+        tip = QPointF(c.x(), c.y() - r)  # arrowhead where the arc ends, pointing clockwise
+        p.drawLine(tip, QPointF(tip.x() - r * 0.5, tip.y() - r * 0.4))
+        p.drawLine(tip, QPointF(tip.x() - r * 0.5, tip.y() + r * 0.4))
+    else:
+        s, o = r * 1.3, r * 0.55
+        a, b = QRectF(c.x() - o - s / 2, c.y() + o - s / 2, s, s), QRectF(c.x() + o - s / 2, c.y() - o - s / 2, s, s)
+        p.drawRect(a)
+        p.drawRect(b)
+        for pa, pb in ((a.topLeft(), b.topLeft()), (a.topRight(), b.topRight()),
+                       (a.bottomLeft(), b.bottomLeft()), (a.bottomRight(), b.bottomRight())):
+            p.drawLine(pa, pb)
+    p.restore()
+
+
 def dim_panel(p: QPainter, rect: QRectF) -> None:
     p.save()
     p.setRenderHint(QPainter.Antialiasing)
