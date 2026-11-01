@@ -1,4 +1,9 @@
-"""The two floating navigation widgets.
+"""The three floating navigation widgets.
+
+PanGizmo: four sliders, one per physical dimension. Drag a knob left or right to
+move the view along W, H, C or T; it springs back to the middle on release, and the
+number beside it is the view's position along that dimension. Panning any other way
+(dragging the image, scrubbing a value) moves the knobs the same way.
 
 RotationGizmo: a real 3D axis frame (W, H, C, with the corner r standing for T)
 drawn with OpenGL. Each math axis is an arrow: its direction is its W/H/C mix and
@@ -66,6 +71,13 @@ def paint_mini(p: QPainter, rect: QRectF, kind: str) -> None:
         tip = QPointF(c.x(), c.y() - r)  # arrowhead where the arc ends, pointing clockwise
         p.drawLine(tip, QPointF(tip.x() - r * 0.5, tip.y() - r * 0.4))
         p.drawLine(tip, QPointF(tip.x() - r * 0.5, tip.y() + r * 0.4))
+    elif kind == "pan":
+        for n, (y, x) in enumerate(((-0.75, 0.35), (0.0, -0.45), (0.75, 0.1))):
+            yy = c.y() + y * r
+            p.drawLine(QPointF(c.x() - r * 1.15, yy), QPointF(c.x() + r * 1.15, yy))
+            p.setBrush(MUTED)
+            p.drawEllipse(QPointF(c.x() + x * r, yy), r * 0.24, r * 0.24)
+            p.setBrush(Qt.NoBrush)
     else:
         s, o = r * 1.3, r * 0.55
         a, b = QRectF(c.x() - o - s / 2, c.y() + o - s / 2, s, s), QRectF(c.x() + o - s / 2, c.y() - o - s / 2, s, s)
@@ -332,6 +344,78 @@ class RotationGizmo:
         for j, spot in self.label_spots(st):
             _text(p, spot, MATH_AXES[j], QColor(*MATH_COLORS[j]))
         p.restore()
+
+
+# ----------------------------------------------------------------------------------
+# Pan widget
+# ----------------------------------------------------------------------------------
+
+class PanGizmo:
+    """Four spring-back sliders. One track width moves the view by one span of that dimension."""
+
+    def __init__(self):
+        self.rect = QRectF()
+        self.expanded = False
+        self.travel = np.zeros(4)  # this gesture's pan so far, in spans; the knobs show it
+
+    def _rows(self):
+        """Per dimension: (y, track left x, track right x)."""
+        r = self.rect
+        pad = 14.0 if self.expanded else 8.0
+        label_w = 20.0 if self.expanded else 14.0
+        readout_w = 64.0 if self.expanded else 0.0
+        x0, x1 = r.left() + pad + label_w, r.right() - pad - readout_w
+        step = (r.height() - 2 * pad) / 4
+        return [(r.top() + pad + step * (k + 0.5), x0, x1) for k in range(4)]
+
+    def track_width(self) -> float:
+        _, x0, x1 = self._rows()[0]
+        return max(1.0, x1 - x0)
+
+    def hit_row(self, pos: QPointF) -> Optional[int]:
+        rows = self._rows()
+        half = (rows[1][0] - rows[0][0]) / 2
+        for k, (y, x0, x1) in enumerate(rows):
+            if abs(pos.y() - y) <= half and x0 - 12 <= pos.x() <= x1 + 12:
+                return k
+        return None
+
+    def label_spots(self) -> List[Tuple[int, QPointF]]:
+        """Where values-mode fields go: over each track."""
+        return [(k, QPointF((x0 + x1) / 2 + 20, y)) for k, (y, x0, x1) in enumerate(self._rows())]
+
+    def paint(self, p: QPainter, st: ViewState) -> None:
+        small = not self.expanded
+        p.save()
+        p.setRenderHint(QPainter.Antialiasing)
+        font = QFont("Consolas", 10 if not small else 8)
+        font.setBold(True)
+        num_font = QFont("Consolas", 9)
+        for k, (y, x0, x1) in enumerate(self._rows()):
+            mid = (x0 + x1) / 2
+            p.setPen(QPen(FAINT, 2.0, Qt.SolidLine, Qt.RoundCap))
+            p.drawLine(QPointF(x0, y), QPointF(x1, y))
+            p.setPen(QPen(FAINT, 1.2))
+            p.drawLine(QPointF(mid, y - 5), QPointF(mid, y + 5))
+            kx = float(np.clip(mid + self.travel[k] * (x1 - x0), x0, x1))
+            p.setPen(Qt.NoPen)
+            p.setBrush(INK)
+            p.drawEllipse(QPointF(kx, y), 6.0 if not small else 4.0, 6.0 if not small else 4.0)
+            p.setFont(font)
+            _text(p, QPointF(x0 - (12 if not small else 8), y), DISPLAY_AXES[k], INK)
+            if not small:
+                p.setFont(num_font)
+                fm = p.fontMetrics()
+                s = _fmt(st.position(k))
+                p.setPen(MUTED)
+                p.drawText(QPointF(self.rect.right() - 12 - fm.horizontalAdvance(s), y + fm.ascent() / 2 - 1), s)
+        p.restore()
+
+
+def _fmt(x: float) -> str:
+    if x != 0 and (abs(x) >= 1e4 or abs(x) < 1e-3):
+        return f"{x:+.3g}".replace("-", "−")
+    return f"{x:+.4g}".replace("-", "−")
 
 
 # ----------------------------------------------------------------------------------

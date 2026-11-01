@@ -120,6 +120,14 @@ class ViewState:
         """Move the view by du in normalized display units."""
         self.center = self.center + self.R @ (self.spans * du)
 
+    def position(self, k: int) -> float:
+        """The view center's coordinate along display axis k (math units along R's column k)."""
+        return float(self.R[:, k] @ self.center)
+
+    def set_position(self, k: int, value: float) -> None:
+        """Move the view along display axis k only, so position(k) becomes value."""
+        self.center = self.center + self.R[:, k] * (value - self.position(k))
+
     def scale(self, factors: np.ndarray, anchor_u: np.ndarray) -> None:
         """Multiply spans by factors, keeping the math point at anchor_u fixed on the display."""
         new = np.clip(self.spans * factors, 1e-12, 1e12)
@@ -211,6 +219,10 @@ class ViewState:
     def reset_rotation(self) -> None:
         """Back to the default alignment, about the pivot so the view doesn't jump."""
         self._set_R(DEFAULT_R.copy())
+
+    def reset_center(self) -> None:
+        """Back to the shape's home center, keeping spans and rotation."""
+        self.center = np.array(HOME_VIEWS.get(self.indicator, _GENERIC_HOME)[0], dtype=float)
 
     def reset_spans(self) -> None:
         """Home spans for this shape (H follows the W:H sample ratio), zooming about the pivot."""

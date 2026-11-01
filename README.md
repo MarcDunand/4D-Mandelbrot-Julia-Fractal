@@ -118,7 +118,7 @@ The status line at the bottom names the device in use: your GPU, or "CPU". To ch
 
 ## Using the viewer
 
-The window is almost all image. Two small navigation widgets float side by side in the top-right corner, and a slim bar along the bottom holds playback, the shape and color pickers, precision, and the Save, Configuration and Options menus.
+The window is almost all image. Three small navigation widgets float side by side in the top-right corner (pan sliders, rotation, scale, from left to right), and a slim bar along the bottom holds playback, the shape and color pickers, precision, and the Save, Configuration and Options menus.
 
 The interface is still evolving, so this section describes how things work rather than every button.
 
@@ -126,13 +126,20 @@ The interface is still evolving, so this section describes how things work rathe
 
 - **Left-drag** pans across the screen, along **W** (horizontal) and **H** (vertical).
 - **Right-drag** pans through the other two dimensions: horizontal moves along **T**, vertical moves along **C**.
-- Holding **Ctrl** while panning snaps a drag that is close to horizontal or vertical onto that axis, so only one dimension changes.
+- Holding **Ctrl** while panning moves only one dimension: whichever axis the drag mostly follows (W or H for a left-drag, T or C for a right-drag). A small arrow and letter next to the mouse show which one.
 - **Scroll** zooms in and out of **W** and **H** around the mouse, like a normal 2D zoom.
 - **Hold 1, 2, 3 or 4 while scrolling** to zoom **W, H, C or T** instead. Keys combine: 1+2 is the same as no keys, and 1+2+3+4 zooms all four. Zooming in T keeps the current frame fixed.
 
 Panning follows the physical axes. After a rotation, a W pan moves through whatever mix of math axes W currently holds, but on screen the image always slides the way your hand moves.
 
 The image itself never rotates the view; rotation only happens through the rotation widget.
+
+### The pan widget (sliders)
+
+The left-hand widget has one slider per physical dimension: **W, H, C and T**. It does the same job as dragging the image, but one dimension at a time, and it reaches C and T as easily as W and H.
+
+- **Drag a knob** left or right to move the view along that dimension. The knob springs back to the middle when you let go, so you can keep dragging in the same direction. One track width moves the view by one full span of that dimension. Panning any other way (dragging the image, or scrubbing a value) moves the knobs the same way, so the widget always shows how the view is moving.
+- The number beside each slider is the **position** of the middle of the view along that dimension, in math units. In the default alignment these are simply x, z, y and w.
 
 ### The scale widget (tesseract)
 
@@ -145,7 +152,7 @@ The right-hand widget is a tesseract (4D cube) drawn as two cubes with their mat
 
 ### The rotation widget
 
-The left-hand widget is a small 3D scene, rendered in real 3D with lighting:
+The middle widget is a small 3D scene, rendered in real 3D with lighting:
 
 - Three axes show **W**, **H** and **C**. The corner where they meet, **r**, stands for **T**.
 - Four colored arrows show the math axes **x, y, z, w**. An arrow's **direction** shows how that axis is split across W, H and C. Its **length** shows how much of it is *outside* T: full length means none of it is in T, and zero length means it lies entirely in T.
@@ -164,16 +171,17 @@ The math arrows follow as you drag. They can't be dragged directly.
 
 The orientation is stored as a full 4D rotation matrix, not as six angles. The same orientation can be reached by turning in different orders, and a six-angle readout would depend on that order, so the plane arrows turn the view *by* an amount rather than *to* an angle.
 
-**Both widgets** start small. Click one to expand it to four times its area. It stays expanded until you click somewhere else.
+**All three widgets** start small. Click one to expand it to four times its area. It stays expanded until you click somewhere else.
 
 ### Values mode
 
 Press **V** to show the numbers behind an expanded widget. Everything else in the widget dims, and the numbers become editable:
 
 - **Rotation widget:** each math arrow's parts along W, H, C and T. The boxes start minimized; click one to open it. A strip of "turn by" fields under the widget rotates each plane by a typed amount.
+- **Pan widget:** the position along each dimension. Typing a value moves the view along that dimension only.
 - **Scale widget:** the span of each dimension.
 
-Click a field to type in it, or press and drag left or right over it to change the value smoothly. A typed rotation value is kept exactly, and the arrow's other parts adjust around it. A **Reset** button returns the widget to its default (home spans, or the default alignment) without moving the slice you're looking at.
+Click a field to type in it, or press and drag left or right over it to change the value smoothly. A typed rotation value is kept exactly, and the arrow's other parts adjust around it. A **Reset** button returns the widget to its default. For the scale and rotation widgets (home spans, default alignment) the slice you are looking at stays put; for the pan widget it moves the view back to the shape's home position, keeping your zoom and rotation.
 
 ### Time, playback and saving
 
@@ -194,12 +202,13 @@ Click a field to type in it, or press and drag left or right over it to change t
 |---|---|
 | Left-drag on image | pan W / H |
 | Right-drag on image | pan T (horizontal) / C (vertical) |
-| Ctrl while panning | snap to one axis |
+| Ctrl while panning | pan one dimension only (an arrow and letter by the mouse show which) |
 | Scroll | zoom W and H about the mouse |
 | Hold 1 / 2 / 3 / 4 + scroll | zoom W / H / C / T |
 | Click a widget | expand it (click elsewhere to collapse) |
 | Drag a plane arrow | rotate the 4D view |
 | Ctrl-drag on rotation widget | tumble the widget's 3D view |
+| Drag a pan slider knob | move the view along W, H, C or T |
 | Drag a tesseract edge | scale one dimension |
 | Space | play / pause |
 | ← / → | previous / next frame |
@@ -305,7 +314,7 @@ whct/                    The viewer (python -m whct)
   engine.py              PyTorch rendering, engine switch, background worker, frame cache
   gpu.py                 Shader rendering (OpenGL fragment shader on its own thread)
   colormap.py            Color mappings and bit packing
-  gizmos.py              Rotation widget (OpenGL) and scale widget
+  gizmos.py              Pan sliders, rotation widget (OpenGL) and scale widget
   valuefields.py         Editable number fields for values mode
   canvas.py              The image view and mouse interaction
   window.py              Main window, playback, saving, options, shortcuts

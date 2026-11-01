@@ -249,6 +249,8 @@ class MainWindow(QMainWindow):
                 del self._undo[:-200]
                 self._redo.clear()
             self._gesture_snap = None
+            self.canvas.pan_g.travel[:] = 0.0  # pan knobs spring back to the middle
+            self.canvas.update()
             self.schedule_render(interactive=False)
 
     def _changed(self):
@@ -258,8 +260,20 @@ class MainWindow(QMainWindow):
         self.schedule_render(interactive=True)
 
     def pan(self, du):
+        # Every pan moves the pan widget's knobs, as if it had been made there.
+        self.canvas.pan_g.travel += du
         self.state.pan(du)
         self._changed()
+
+    def set_position(self, k, value):
+        du = np.zeros(4)
+        du[k] = (value - self.state.position(k)) / self.state.spans[k]
+        self.pan(du)
+
+    def edit_position(self, k, value):
+        self.begin_gesture()
+        self.set_position(k, value)
+        self.end_gesture()
 
     def zoom(self, dims, factor, anchor_u):
         if not self.wheel_timer.isActive():
@@ -304,6 +318,12 @@ class MainWindow(QMainWindow):
     def reset_rotation(self):
         self.begin_gesture()
         self.state.reset_rotation()
+        self._changed()
+        self.end_gesture()
+
+    def reset_center(self):
+        self.begin_gesture()
+        self.state.reset_center()
         self._changed()
         self.end_gesture()
 
@@ -550,7 +570,7 @@ class MainWindow(QMainWindow):
         elif key == Qt.Key_Right:
             self.step_frame(1)
         elif key == Qt.Key_Escape:
-            if self.canvas.rot.expanded or self.canvas.scl.expanded or not self.isFullScreen():
+            if self.canvas.any_expanded() or not self.isFullScreen():
                 self.canvas.collapse_widgets()
             else:
                 self.toggle_fullscreen()
